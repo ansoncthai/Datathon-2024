@@ -7,6 +7,24 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+// Define the type for TradingView widget
+interface TradingView {
+  widget: (options: {
+    width: string | number
+    height: string | number
+    symbol: string
+    interval: string
+    timezone: string
+    theme: string
+    style: string
+    locale: string
+    toolbar_bg: string
+    enable_publishing: boolean
+    allow_symbol_change: boolean
+    container_id: string
+  }) => void
+}
+
 export default function BacktestingApp() {
   const [backtestResults, setBacktestResults] = useState({
     totalTrades: 0,
@@ -21,20 +39,23 @@ export default function BacktestingApp() {
     script.src = 'https://s3.tradingview.com/tv.js'
     script.async = true
     script.onload = () => {
-      new (window as any).TradingView.widget({
-        width: '100%',
-        height: 400,
-        symbol: 'NASDAQ:AAPL',
-        interval: 'D',
-        timezone: 'Etc/UTC',
-        theme: 'dark',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: '#f1f3f6',
-        enable_publishing: false,
-        allow_symbol_change: true,
-        container_id: 'tradingview_chart'
-      })
+      const tradingView = (window as { TradingView?: TradingView }).TradingView
+      if (tradingView?.widget) {
+        tradingView.widget({
+          width: '100%',
+          height: 400,
+          symbol: 'NASDAQ:AAPL',
+          interval: 'D',
+          timezone: 'Etc/UTC',
+          theme: 'dark',
+          style: '1',
+          locale: 'en',
+          toolbar_bg: '#f1f3f6',
+          enable_publishing: false,
+          allow_symbol_change: true,
+          container_id: 'tradingview_chart'
+        })
+      }
     }
     document.head.appendChild(script)
 

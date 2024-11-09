@@ -1,101 +1,156 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+export default function BacktestingApp() {
+  const [backtestResults, setBacktestResults] = useState({
+    totalTrades: 0,
+    winRate: 0,
+    profitFactor: 0,
+    sharpeRatio: 0,
+  })
+
+  useEffect(() => {
+    // Initialize TradingView widget
+    const script = document.createElement('script')
+    script.src = 'https://s3.tradingview.com/tv.js'
+    script.async = true
+    script.onload = () => {
+      new (window as any).TradingView.widget({
+        width: '100%',
+        height: 400,
+        symbol: 'NASDAQ:AAPL',
+        interval: 'D',
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#f1f3f6',
+        enable_publishing: false,
+        allow_symbol_change: true,
+        container_id: 'tradingview_chart'
+      })
+    }
+    document.head.appendChild(script)
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+
+  const handleBacktest = () => {
+    // Simulate backtesting results
+    setBacktestResults({
+      totalTrades: Math.floor(Math.random() * 1000),
+      winRate: Math.random() * 100,
+      profitFactor: 1 + Math.random() * 2,
+      sharpeRatio: Math.random() * 3,
+    })
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">Backtesting Trading App</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>TradingView Chart</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div id="tradingview_chart" className="w-full h-[400px]"></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Backtesting Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
+                  <p className="text-2xl font-bold">{backtestResults.totalTrades}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Win Rate</p>
+                  <p className="text-2xl font-bold">{backtestResults.winRate.toFixed(2)}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Profit Factor</p>
+                  <p className="text-2xl font-bold">{backtestResults.profitFactor.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Sharpe Ratio</p>
+                  <p className="text-2xl font-bold">{backtestResults.sharpeRatio.toFixed(2)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Trading Constraints</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="indicator">Indicator</Label>
+                <Select>
+                  <SelectTrigger id="indicator">
+                    <SelectValue placeholder="Select indicator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rsi">RSI</SelectItem>
+                    <SelectItem value="macd">MACD</SelectItem>
+                    <SelectItem value="bollinger">Bollinger Bands</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="condition">Condition</Label>
+                <Select>
+                  <SelectTrigger id="condition">
+                    <SelectValue placeholder="Select condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="less_than">&lt;</SelectItem>
+                    <SelectItem value="greater_than">&gt;</SelectItem>
+                    <SelectItem value="equal_to">=</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="value">Value</Label>
+                <Input id="value" type="number" placeholder="Enter value" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price-condition">Price Condition</Label>
+                <Select>
+                  <SelectTrigger id="price-condition">
+                    <SelectValue placeholder="Select price condition" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="above_sma">Price &gt; SMA</SelectItem>
+                    <SelectItem value="below_sma">Price &lt; SMA</SelectItem>
+                    <SelectItem value="above_ema">Price &gt; EMA</SelectItem>
+                    <SelectItem value="below_ema">Price &lt; EMA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ma-period">Moving Average Period</Label>
+                <Input id="ma-period" type="number" placeholder="Enter period" />
+              </div>
+              <Button className="w-full" onClick={handleBacktest}>Run Backtest</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

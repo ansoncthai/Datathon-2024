@@ -106,7 +106,7 @@ export default function BacktestingApp() {
     const chartContainerRef = useRef<HTMLDivElement | null>(null)
     const [fetchError, setFetchError] = useState<string | null>(null)
     const { theme, setTheme } = useTheme()
-    
+
     useEffect(() => {
         let chart: IChartApi | null = null
 
@@ -389,9 +389,13 @@ export default function BacktestingApp() {
                         <SelectValue placeholder="Select indicator" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="SMA">SMA</SelectItem>
-                        <SelectItem value="EMA">EMA</SelectItem>
-                        <SelectItem value="RSI">RSI</SelectItem>
+                        <SelectItem value="SMA">Simple Moving Average (SMA)</SelectItem>
+                        <SelectItem value="EMA">Exponential Moving Average (EMA)</SelectItem>
+                        <SelectItem value="RSI">Relative Strength Index (RSI)</SelectItem>
+                        <SelectItem value="ATR">Average True Range (ATR)</SelectItem>
+                        <SelectItem value="CMF">Chaikin Money Flow (CMF)</SelectItem>
+                        <SelectItem value="Williams %R">Williams %R</SelectItem>
+                        <SelectItem value="CCI">Commodity Channel Index (CCI)</SelectItem>
                     </SelectContent>
                 </Select>
                 <Input
@@ -422,7 +426,7 @@ export default function BacktestingApp() {
                         <SelectItem value="=">=</SelectItem>
                     </SelectContent>
                 </Select>
-                {condition.indicator === 'RSI' ? (
+                {condition.indicator !== 'SMA' && condition.indicator !== 'EMA' ? (
                     <Input
                         type="number"
                         placeholder="Value"

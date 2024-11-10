@@ -77,5 +77,4 @@ def calculate_parabolic_sar(df, af=0.02, max_af=0.2):
     """Parabolic SAR"""
     psar = ta.psar(df['High'], df['Low'], df['Close'], af=af, max_af=max_af)
     df = pd.concat([df, psar], axis=1)  # Concatenate the multiple columns returned by psar
-    df.dropna(inplace=True)  # Drop rows with NaNs
-    return df
+    df.dropna(inplace=True)  # Drop 

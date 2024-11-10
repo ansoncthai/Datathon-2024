@@ -4,15 +4,14 @@ from backtesting import Backtest
 import numpy as np
 from dynamic_strategy import DynamicStrategy
 from data_validation import fetch_data, validate_and_clean_data
-from indicators import (
-    calculate_indicators  # Updated import
-)
+from indicators import calculate_indicators
 
 app = Flask(__name__)
 
 @app.route('/api/run-backtest', methods=['POST'])
 def run_backtest():
     data = request.json
+    print("Received data:", data)
 
     # Step 1: Fetch and validate historical data
     try:
@@ -49,6 +48,7 @@ def run_backtest():
         df = validate_and_clean_data(df)
 
         print(f"Data after validation: {len(df)} rows")
+        print(df.head())
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -63,8 +63,10 @@ def run_backtest():
         # Calculate only the required indicators
         df = calculate_indicators(df, required_indicators)
         print("DataFrame columns after indicator calculations:", df.columns)
+        print(df.head())
         
     except Exception as e:
+        print(f"Error calculating indicators: {e}")
         return jsonify({"error": f"Error calculating indicators: {e}"}), 400
 
     print(f"Data after indicator calculations: {len(df)} rows")
@@ -81,17 +83,22 @@ def run_backtest():
         return jsonify({"error": "No data available after processing. Please adjust your date range or check your indicators."}), 400
 
     # Step 4: Assign params to DynamicStrategy
+    print("Assigning parameters to DynamicStrategy:", data.get("params", {}))
     DynamicStrategy.params = data.get("params", {})
 
     # Step 5: Run the backtest with provided initial_cash and commission
     try:
         initial_cash = data.get('initial_cash', 10000)
         commission = data.get('commission', 0.002)
+        print(f"Running backtest with initial_cash={initial_cash}, commission={commission}")
         bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission)
+        # bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission, trade_on_close=True)
         stats = bt.run()
     except KeyError as e:
+        print(f"Missing column in data: {e}")
         return jsonify({"error": f"Missing column in data: {e}"}), 400
     except Exception as e:
+        print(f"Error during backtesting: {e}")
         return jsonify({"error": f"Error during backtesting: {e}"}), 400
 
     # Step 6: Collect relevant performance metrics

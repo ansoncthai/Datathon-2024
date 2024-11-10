@@ -1,6 +1,8 @@
+python-venv
 Flask
 ta
 yfinance
 backtesting
 pandas
 numpy
+pandas_ta

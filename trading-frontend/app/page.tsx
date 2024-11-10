@@ -348,8 +348,8 @@ export default function BacktestingApp() {
                             <CardTitle>Backtest Parameters</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-4 grid grid-cols-2 gap-4">
-                                <div className="flex flex-col space-y-1">
+                            <form className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"> {/* Responsive grid with consistent spacing */}
+                                <div className="space-y-1">
                                     <Label htmlFor="ticker">Ticker</Label>
                                     <Input
                                         id="ticker"
@@ -357,25 +357,7 @@ export default function BacktestingApp() {
                                         onChange={(e) => setBacktestParams(prev => ({ ...prev, ticker: e.target.value }))}
                                     />
                                 </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="start_date">Start Date</Label>
-                                    <Input
-                                        id="start_date"
-                                        type="date"
-                                        value={backtestParams.start_date}
-                                        onChange={(e) => setBacktestParams(prev => ({ ...prev, start_date: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="end_date">End Date</Label>
-                                    <Input
-                                        id="end_date"
-                                        type="date"
-                                        value={backtestParams.end_date}
-                                        onChange={(e) => setBacktestParams(prev => ({ ...prev, end_date: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="flex flex-col space-y-1">
+                                <div className="space-y-1">
                                     <Label htmlFor="initial_cash">Initial Cash</Label>
                                     <Input
                                         id="initial_cash"
@@ -384,7 +366,16 @@ export default function BacktestingApp() {
                                         onChange={(e) => setBacktestParams(prev => ({ ...prev, initial_cash: parseFloat(e.target.value) || 0 }))}
                                     />
                                 </div>
-                                <div className="flex flex-col space-y-1">
+                                <div className="space-y-1">
+                                    <Label htmlFor="start_date">Start Date</Label>
+                                    <Input
+                                        id="start_date"
+                                        type="date"
+                                        value={backtestParams.start_date}
+                                        onChange={(e) => setBacktestParams(prev => ({ ...prev, start_date: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-1">
                                     <Label htmlFor="commission">Commission</Label>
                                     <Input
                                         id="commission"
@@ -394,7 +385,16 @@ export default function BacktestingApp() {
                                         onChange={(e) => setBacktestParams(prev => ({ ...prev, commission: parseFloat(e.target.value) || 0 }))}
                                     />
                                 </div>
-                                <div className="flex flex-col space-y-1">
+                                <div className="space-y-1">
+                                    <Label htmlFor="end_date">End Date</Label>
+                                    <Input
+                                        id="end_date"
+                                        type="date"
+                                        value={backtestParams.end_date}
+                                        onChange={(e) => setBacktestParams(prev => ({ ...prev, end_date: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-1">
                                     <Label htmlFor="fixed_cash_position_size">Fixed Cash Position Size</Label>
                                     <Input
                                         id="fixed_cash_position_size"
@@ -470,10 +470,9 @@ export default function BacktestingApp() {
 
                         <Card className="col-span-1">
                             <CardHeader>
-                                <CardTitle></CardTitle>
+                                <CardTitle>comp</CardTitle>
                             </CardHeader>
                             <CardContent>
-
 
                             </CardContent>
                         </Card>

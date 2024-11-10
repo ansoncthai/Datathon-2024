@@ -43,7 +43,7 @@ type BacktestParams = {
     }
     initial_cash: number
     commission: number
-    fixed_cash_position_size: number // Add this line
+    fixed_cash_per_trade: number // Add this line
 }
 
 type PriceDataItem = {
@@ -84,7 +84,7 @@ export default function BacktestingApp() {
         },
         initial_cash: 10000,
         commission: 0.002,
-        fixed_cash_position_size: 1000 // Add this line
+        fixed_cash_per_trade: 0
     })
 
     const [backtestResults, setBacktestResults] = useState<{
@@ -458,7 +458,7 @@ export default function BacktestingApp() {
         <div className="min-h-screen bg-gray-50 dark:bg-black p-4">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-200 text-center w-full">
-                    BackTrader, QuantWise, TradeWise, BackTrack
+                    QuantWise | Smarter Trades Through Data-Driven Backtesting
                 </h1>
                 <Button
                     variant="outline"
@@ -561,18 +561,18 @@ export default function BacktestingApp() {
                                         />
                                     </div>
                                     <div className="flex flex-col space-y-1">
-                                        <Label htmlFor="fixed_cash_position_size">Fixed Cash Position Size</Label>
+                                        <Label htmlFor="fixed_cash_per_trade">Fixed Cash Position Size (leave at 0 to use all cash for each trade)</Label>
                                         <Input
-                                            id="fixed_cash_position_size"
+                                            id="fixed_cash_per_trade"
                                             type="number"
-                                            value={backtestParams.fixed_cash_position_size}
+                                            value={backtestParams.fixed_cash_per_trade}
                                             onChange={(e) =>
                                                 setBacktestParams((prev) => ({
                                                     ...prev,
-                                                    fixed_cash_position_size: parseFloat(e.target.value) || 0,
+                                                    fixed_cash_per_trade: parseFloat(e.target.value) || 0,
                                                 }))
                                             }
-                                            placeholder="e.g., 1000"
+                                            placeholder="e.g., Leave blank to use all cash or set a fixed amount"
                                         />
                                     </div>
                                 </div>

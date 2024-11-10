@@ -9,7 +9,8 @@ from data_validation import fetch_data, validate_and_clean_data
 from indicators import calculate_indicators
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+#CORS(app)  # Enable CORS for all routes
+CORS(app, origins=["https://datathon-2024-bice.vercel.app"])
 
 @app.route('/api/get-price-data', methods=['GET'])
 def get_price_data():

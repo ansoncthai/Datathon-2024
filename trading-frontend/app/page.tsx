@@ -394,7 +394,7 @@ export default function BacktestingApp() {
                         <SelectItem value="RSI">Relative Strength Index (RSI)</SelectItem>
                         <SelectItem value="ATR">Average True Range (ATR)</SelectItem>
                         <SelectItem value="CMF">Chaikin Money Flow (CMF)</SelectItem>
-                        <SelectItem value="Williams %R">Williams %R</SelectItem>
+                        <SelectItem value="Williams %R">Williams %R</SelectItem> 
                         <SelectItem value="CCI">Commodity Channel Index (CCI)</SelectItem>
                     </SelectContent>
                 </Select>

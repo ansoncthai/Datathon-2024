@@ -165,6 +165,12 @@ def run_backtest():
     profit_factor = stats.get('Profit Factor', "N/A")
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")
 
+    # def clean_metric(value):
+    #     if value is None or pd.isna(value) or np.isinf(value):
+    #         return None  # This will be converted to 'null' in JSON
+    #     else:
+    #         return value
+
     # Step 7: Process trade history to prepare it for the frontend
     trade_history = []
     if '_trades' in dir(stats):

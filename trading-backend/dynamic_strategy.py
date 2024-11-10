@@ -57,10 +57,7 @@ class DynamicStrategy(Strategy):
 
             # Get the last value for the condition check
             indicator_value = self.data.df[column].iloc[-1] if column in self.data.df.columns else None
-            if 'reference' in condition:
-                reference_value = self.data.df[reference].iloc[-1] if reference in self.data.df.columns else None
-            else:
-                reference_value = value
+            reference_value = self.data.df[reference].iloc[-1] if reference in self.data.df.columns else value
 
             # Evaluate condition
             if indicator_value is not None and reference_value is not None:

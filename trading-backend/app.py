@@ -92,7 +92,6 @@ def run_backtest():
         commission = data.get('commission', 0.002)
         print(f"Running backtest with initial_cash={initial_cash}, commission={commission}")
         bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission)
-        # bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission, trade_on_close=True)
         stats = bt.run()
     except KeyError as e:
         print(f"Missing column in data: {e}")
@@ -102,8 +101,9 @@ def run_backtest():
         return jsonify({"error": f"Error during backtesting: {e}"}), 400
 
     # Step 6: Collect relevant performance metrics
+    print("Available stats keys:", stats.keys())  # Added for debugging
     total_return = stats.get('Return [%]', "N/A")
-    max_drawdown = stats.get('Max Drawdown [%]', "N/A")
+    max_drawdown = stats.get('Max. Drawdown [%]', "N/A")  # Corrected key name
     win_rate = stats.get('Win Rate [%]', "N/A")
     profit_factor = stats.get('Profit Factor', "N/A")
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")

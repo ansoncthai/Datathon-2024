@@ -50,68 +50,54 @@ def run_backtest():
         # Validate and clean data
         df = validate_and_clean_data(df)
 
-        print(f"Data after validation: {len(df)} rows")
-
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
     # Step 2: Calculate Indicators
     try:
-        df = calculate_sma(df, 50)
-        df = calculate_rsi(df, 14)
-        df = calculate_bollinger_bands(df, 20, 2)
-        df = calculate_macd(df, 12, 26, 9)
-        df = calculate_atr(df, 14)
-        df = calculate_stochastic_oscillator(df, 14, 3)
+        df = calculate_sma(df, data['params']['sma_long'])
+        df = calculate_rsi(df, data['params']['rsi_period'])
+        df = calculate_bollinger_bands(df, data['params']['bollinger_period'], data['params']['bollinger_std_dev'])
+        df = calculate_macd(df, data['params']['macd_fast'], data['params']['macd_slow'], data['params']['macd_signal'])
+        df = calculate_atr(df, data['params']['atr_period'])
+        df = calculate_stochastic_oscillator(df, data['params']['stochastic_period'], data['params']['stochastic_smooth'])
         df = calculate_obv(df)
-        df = calculate_cmf(df, 20)
-        df = calculate_williams_r(df, 14)
-        df = calculate_cci(df, 20)
-        df = calculate_donchian_channels(df, 20)
-        df = calculate_parabolic_sar(df)
+        df = calculate_cmf(df, data['params']['cmf_period'])
+        df = calculate_williams_r(df, data['params']['williams_r_period'])
+        df = calculate_cci(df, data['params']['cci_period'])
+        df = calculate_donchian_channels(df, data['params']['donchian_period'])
+        df = calculate_parabolic_sar(df, data['params']['parabolic_sar_af'], data['params']['parabolic_sar_max_af'])
     except Exception as e:
         return jsonify({"error": f"Error calculating indicators: {e}"}), 400
 
-    print(f"Data after indicator calculations: {len(df)} rows")
-
-    # Step 3: Handle NaNs
-    # Drop NaNs only in essential columns
-    essential_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-    df.dropna(subset=essential_columns, inplace=True)
-
-    # Optionally fill NaNs in indicator columns
+    # Handle NaNs by forward/backward filling and ensuring non-essential columns don’t interfere
     df.fillna(method='ffill', inplace=True)
     df.fillna(method='bfill', inplace=True)
 
-    print(f"Data after handling NaNs: {len(df)} rows")
-
-    if df.empty:
-        return jsonify({"error": "No data available after processing. Please adjust your date range or check your indicators."}), 400
-
-    # Step 4: Define parameters for the backtest
+    # Step 3: Define parameters for the backtest
     params = {
         "conditions": [
-            {"indicator": "RSI", "period": 14, "comparison": "<", "value": 30},
-            {"indicator": "SMA", "period": 50, "comparison": ">", "reference": "Close"}
+            {"indicator": "RSI", "period": data['params']['rsi_period'], "comparison": "<", "value": 30},
+            {"indicator": "SMA", "period": data['params']['sma_long'], "comparison": ">", "reference": "Close"}
         ]
     }
     DynamicStrategy.params = params
 
-    # Step 5: Run the backtest
+    # Step 4: Run the backtest
     try:
         bt = Backtest(df, DynamicStrategy, cash=10000, commission=0.002)
         stats = bt.run()
     except Exception as e:
         return jsonify({"error": f"Error during backtesting: {e}"}), 400
 
-    # Step 6: Collect relevant performance metrics
+    # Step 5: Collect relevant performance metrics
     total_return = stats.get('Return [%]', "N/A")
-    max_drawdown = stats.get('Max Drawdown [%]', "N/A")
-    win_rate = stats.get('Win Rate [%]', "N/A")
-    profit_factor = stats.get('Profit Factor', "N/A")
+    max_drawdown = stats.get('Max Drawdown [%]', 0.0)
+    win_rate = stats.get('Win Rate [%]', 0.0)
+    profit_factor = stats.get('Profit Factor', 1.0)
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")
 
-    # Step 7: Process trade history to prepare it for the frontend
+    # Step 6: Process trade history to prepare it for the frontend
     trade_history = []
     if '_trades' in dir(stats):
         trades_df = stats._trades.copy()
@@ -120,7 +106,7 @@ def run_backtest():
             trades_df[col] = trades_df[col].dt.total_seconds()
         trade_history = trades_df.to_dict(orient="records")
 
-    # Step 8: Format results for frontend
+    # Step 7: Format results for frontend
     results = {
         "total_return": total_return,
         "max_drawdown": max_drawdown,

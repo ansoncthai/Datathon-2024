@@ -93,7 +93,6 @@ def get_indicator_column_name(indicator, period):
         "CCI": f"CCI_{period}",
         "CMF": f"CMF_{period}",
         "Williams %R": f"Williams_%R_{period}",
-        # For indicators with multiple outputs, select the primary one
         "Donchian Channels": f"DCL_{period}",  # Lower band
         "Parabolic SAR": "PSAR_0.02_0.2",      # Default PSAR column
         "MACD": f"MACD_12_26_9",               # MACD line
@@ -117,10 +116,16 @@ def calculate_rsi(df, period):
     df[f"RSI_{period}"] = ta.rsi(df['Close'], length=period)
     return df
 
+# def calculate_macd(df, fast_period, slow_period, signal_period):
+#     """Moving Average Convergence Divergence (MACD)"""
+#     macd = ta.macd(df['Close'], fast=fast_period, slow=slow_period, signal=signal_period)
+#     df = pd.concat([df, macd], axis=1)
+#     return df
 def calculate_macd(df, fast_period, slow_period, signal_period):
     """Moving Average Convergence Divergence (MACD)"""
-    macd = ta.macd(df['Close'], fast=fast_period, slow=slow_period, signal=signal_period)
-    df = pd.concat([df, macd], axis=1)
+    # Calculate MACD line only (you can specify which line to return)
+    macd = ta.macd(df['Close'], fast=fast_period, slow=slow_period, signal=signal_period)['MACD_12_26_9']
+    df['MACD_12_26_9'] = macd  # Only add the MACD line to the DataFrame
     return df
 
 def calculate_atr(df, period):

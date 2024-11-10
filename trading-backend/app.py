@@ -17,6 +17,7 @@ def run_backtest():
     try:
         df = fetch_data(data['ticker'], data['start_date'], data['end_date'])
         
+        
         # Flatten MultiIndex if necessary
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
@@ -91,7 +92,7 @@ def run_backtest():
         initial_cash = data.get('initial_cash', 10000)
         commission = data.get('commission', 0.002)
         print(f"Running backtest with initial_cash={initial_cash}, commission={commission}")
-        bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission)
+        bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission, trade_on_close=False)
         # bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission, trade_on_close=True)
         stats = bt.run()
     except KeyError as e:
@@ -103,7 +104,7 @@ def run_backtest():
 
     # Step 6: Collect relevant performance metrics
     total_return = stats.get('Return [%]', "N/A")
-    max_drawdown = stats.get('Max Drawdown [%]', "N/A")
+    max_drawdown = stats.get('Max. Drawdown [%]', "N/A")
     win_rate = stats.get('Win Rate [%]', "N/A")
     profit_factor = stats.get('Profit Factor', "N/A")
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")

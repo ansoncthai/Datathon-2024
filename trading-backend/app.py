@@ -247,7 +247,7 @@ def get_indicator_data():
 
         # Replace any remaining NaNs with None to ensure valid JSON serialization
         indicator_data[indicator_column] = indicator_data[indicator_column].replace({np.nan: None})
-        
+
         # Prepare the data for JSON response
         response_data = indicator_data[['Date', indicator_column]].rename(columns={indicator_column: 'value'}).to_dict(orient='records')
 

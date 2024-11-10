@@ -42,12 +42,16 @@ def get_price_data():
             print("Flattened columns:", df.columns)
 
         column_mapping = {
-            f"date": "date",
-            f"open_{ticker.lower()}": "open",
-            f"high_{ticker.lower()}": "high",
-            f"low_{ticker.lower()}": "low",
-            f"close_{ticker.lower()}": "close"
+            "Date": "date",
+            "Open": "open",
+            "High": "high",
+            "Low": "low",
+            "Close": "close",
+            # Optionally include 'Adj Close' if needed
+            "Adj Close": "adj_close",
+            "Volume": "volume"
         }
+
         df.rename(columns=column_mapping, inplace=True)
 
         # Convert to dictionary and check for tuple keys
@@ -77,10 +81,13 @@ def run_backtest():
     try:
         df = fetch_data(data['ticker'], data['start_date'], data['end_date'])
         
+        print("Columns before renaming:", df.columns)
+        
         # Flatten MultiIndex if necessary
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-        
+            df.columns = ['_'.join(filter(None, col)).lower() for col in df.columns]
+            print("Flattened columns:", df.columns)
+
         # Prioritize 'Adj Close' over 'Close'
         if 'Adj Close' in df.columns:
             df['Close'] = df['Adj Close']
@@ -88,16 +95,16 @@ def run_backtest():
         
         # Rename columns to match expected format
         column_mapping = {
-            'open': 'Open',
-            'high': 'High',
-            'low': 'Low',
-            'volume': 'Volume',
-            'Open': 'Open',
-            'High': 'High',
-            'Low': 'Low',
-            'Volume': 'Volume',
+            "Date": "date",
+            "Open": "Open",
+            "High": "High",
+            "Low": "Low",
+            "Close": "Close",
+            "Volume": "Volume"
         }
         df.rename(columns=column_mapping, inplace=True)
+
+        print("Columns after renaming:", df.columns)
         
         # Validate essential columns
         required_columns = {'Open', 'High', 'Low', 'Close', 'Volume'}
@@ -172,9 +179,16 @@ def run_backtest():
         timedelta_cols = trades_df.select_dtypes(include=['timedelta64[ns]', 'timedelta64']).columns
         for col in timedelta_cols:
             trades_df[col] = trades_df[col].dt.total_seconds()
+        
+        # Format 'EntryTime' and 'ExitTime' as 'YYYY-MM-DD'
+        if 'EntryTime' in trades_df.columns:
+            trades_df['EntryTime'] = pd.to_datetime(trades_df['EntryTime']).dt.strftime('%Y-%m-%d')
+        if 'ExitTime' in trades_df.columns:
+            trades_df['ExitTime'] = pd.to_datetime(trades_df['ExitTime']).dt.strftime('%Y-%m-%d')
+        
         trade_history = trades_df.to_dict(orient="records")
 
-    # Step 7: Format results for frontend
+    # Step 8: Format results for frontend
     results = {
         "total_return": total_return,
         "max_drawdown": max_drawdown,
@@ -185,8 +199,6 @@ def run_backtest():
     }
 
     return jsonify(results)
-    return jsonify({"status": "Backtest Success"})
-
 
 
 if __name__ == '__main__':

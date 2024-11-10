@@ -119,85 +119,98 @@ export default function BacktestingApp() {
     const [fetchError, setFetchError] = useState<string | null>(null);
 
     useEffect(() => {
-        let chart: IChartApi | null = null;
-
-        const fetchDataAndRenderChart = async () => {
-            if (chartContainerRef.current && backtestParams.ticker && backtestParams.start_date && backtestParams.end_date) {
-                try {
-                    console.log("Initializing chart...");
-                    chart = createChart(chartContainerRef.current, {
-                        width: chartContainerRef.current.clientWidth,
-                        height: 400,
-                        layout: { background: { color: '#FFFFFF' }, textColor: '#000000' },
-                        grid: { vertLines: { color: '#e0e0e0' }, horzLines: { color: '#e0e0e0' }},
-                        crosshair: { mode: CrosshairMode.Normal },
-                        timeScale: { timeVisible: true, secondsVisible: false },
-                    });
-
-                    const candleSeries = chart.addCandlestickSeries();
-                    const url = `http://127.0.0.1:5000/api/get-price-data?ticker=${encodeURIComponent(backtestParams.ticker)}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`;
-                    console.log('Fetching price data from:', url);
-
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Error fetching price data');
-                    }
-
-                    const data: PriceDataItem[] = await response.json();
-                    console.log('Received price data:', data);
-
-                    if (data.length === 0) {
-                        throw new Error('No price data available for the selected ticker and date range.');
-                    }
-
-                    const priceData = data.map((item: PriceDataItem) => ({
-                        time: item.date as Time,
-                        open: item.open,
-                        high: item.high,
-                        low: item.low,
-                        close: item.close,
-                    }));
-
-                    candleSeries.setData(priceData);
-
-                    if (backtestResults.trade_history && backtestResults.trade_history.length > 0) {
-                        const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap((trade: TradeHistoryEntry) => {
-                            const entryTime = trade.EntryTime.split('T')[0];
-                            const exitTime = trade.ExitTime ? trade.ExitTime.split('T')[0] : null;
-
-                            const markersList: SeriesMarker<Time>[] = [
-                                { time: entryTime as Time, position: 'belowBar', color: 'green', shape: 'arrowUp', text: `Buy @ ${trade.EntryPrice.toFixed(2)}` }
-                            ];
-
-                            if (exitTime) {
-                                markersList.push({ time: exitTime as Time, position: 'aboveBar', color: 'red', shape: 'arrowDown', text: `Sell @ ${trade.ExitPrice.toFixed(2)}` });
-                            }
-
-                            return markersList;
-                        });
-
-                        candleSeries.setMarkers(markers);
-                    }
-
-                    chart.timeScale().fitContent();
-                } catch (error) {
-                    console.error('Error fetching or rendering price data:', error);
-                    setFetchError((error as Error).message || 'Error fetching price data');
-                }
-            } else {
-                console.log('Chart container or backtest parameters not set.');
-            }
-        };
-
-        fetchDataAndRenderChart();
-
-        return () => {
-            if (chart) {
-                chart.remove();
-            }
-        };
-    }, [backtestResults, backtestParams]);
+      let chart: IChartApi | null = null;
+  
+      const fetchDataAndRenderChart = async () => {
+          if (chartContainerRef.current && backtestParams.ticker && backtestParams.start_date && backtestParams.end_date) {
+              try {
+                  console.log("Initializing chart...");
+                  chart = createChart(chartContainerRef.current, {
+                      width: chartContainerRef.current.clientWidth,
+                      height: 400,
+                      layout: { background: { color: '#FFFFFF' }, textColor: '#000000' },
+                      grid: { vertLines: { color: '#e0e0e0' }, horzLines: { color: '#e0e0e0' }},
+                      crosshair: { mode: CrosshairMode.Normal },
+                      timeScale: { timeVisible: true, secondsVisible: false },
+                  });
+  
+                  const candleSeries = chart.addCandlestickSeries();
+                  const url = `http://127.0.0.1:5000/api/get-price-data?ticker=${encodeURIComponent(backtestParams.ticker)}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`;
+                  console.log('Fetching price data from:', url);
+  
+                  const response = await fetch(url);
+                  if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || 'Error fetching price data');
+                  }
+  
+                  const data: PriceDataItem[] = await response.json();
+                  console.log('Received price data:', data);
+  
+                  if (data.length === 0) {
+                      throw new Error('No price data available for the selected ticker and date range.');
+                  }
+  
+                  const priceData = data.map((item: PriceDataItem) => ({
+                      time: item.date as Time,
+                      open: item.open,
+                      high: item.high,
+                      low: item.low,
+                      close: item.close,
+                  }));
+  
+                  candleSeries.setData(priceData);
+  
+                  if (backtestResults.trade_history && backtestResults.trade_history.length > 0) {
+                      const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap((trade: TradeHistoryEntry) => {
+                          const entryTime = trade.EntryTime; // Directly use the date string
+                          const exitTime = trade.ExitTime;   // Directly use the date string
+  
+                          const markersList: SeriesMarker<Time>[] = [
+                              { 
+                                  time: entryTime as Time, 
+                                  position: 'belowBar', 
+                                  color: 'green', 
+                                  shape: 'arrowUp', 
+                                  text: `Buy @ ${trade.EntryPrice.toFixed(2)}` 
+                              }
+                          ];
+  
+                          if (exitTime) {
+                              markersList.push({ 
+                                  time: exitTime as Time, 
+                                  position: 'aboveBar', 
+                                  color: 'red', 
+                                  shape: 'arrowDown', 
+                                  text: `Sell @ ${trade.ExitPrice.toFixed(2)}` 
+                              });
+                          }
+  
+                          return markersList;
+                      });
+  
+                      candleSeries.setMarkers(markers);
+                  }
+  
+                  chart.timeScale().fitContent();
+              } catch (error) {
+                  console.error('Error fetching or rendering price data:', error);
+                  setFetchError((error as Error).message || 'Error fetching price data');
+              }
+          } else {
+              console.log('Chart container or backtest parameters not set.');
+          }
+      };
+  
+      fetchDataAndRenderChart();
+  
+      return () => {
+          if (chart) {
+              chart.remove();
+          }
+      };
+  }, [backtestResults, backtestParams]);
+  
 
     const updateCondition = (
         index: number,

@@ -24,45 +24,71 @@ def run_backtest():
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         
+        # Prioritize 'Adj Close' over 'Close'
+        if 'Adj Close' in df.columns:
+            df['Close'] = df['Adj Close']
+            df.drop(columns=['Adj Close'], inplace=True)
+        
         # Rename columns to match expected format
         column_mapping = {
-            'Adj Close': 'Close',
-            'close': 'Close',
             'open': 'Open',
             'high': 'High',
             'low': 'Low',
-            'volume': 'Volume'
+            'volume': 'Volume',
+            'Open': 'Open',
+            'High': 'High',
+            'Low': 'Low',
+            'Volume': 'Volume',
         }
         df.rename(columns=column_mapping, inplace=True)
-
+        
         # Validate essential columns
-        required_columns = {'Open', 'High', 'Low', 'Close'}
+        required_columns = {'Open', 'High', 'Low', 'Close', 'Volume'}
         if not required_columns.issubset(df.columns):
-            return jsonify({"error": "DataFrame must include 'Open', 'High', 'Low', and 'Close' columns"}), 400
+            return jsonify({"error": f"DataFrame must include {required_columns} columns"}), 400
 
         # Validate and clean data
         df = validate_and_clean_data(df)
+
+        print(f"Data after validation: {len(df)} rows")
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
     # Step 2: Calculate Indicators
-    # Apply indicator calculations here based on the expected conditions
-    # You may apply only the indicators needed for the current conditions, or all if they are unknown in advance.
-    df = calculate_sma(df, 50)
-    df = calculate_rsi(df, 14)
-    df = calculate_bollinger_bands(df, 20, 2)
-    df = calculate_macd(df, 12, 26, 9)
-    df = calculate_atr(df, 14)
-    df = calculate_stochastic_oscillator(df, 14, 3)
-    df = calculate_obv(df)
-    df = calculate_cmf(df, 20)
-    df = calculate_williams_r(df, 14)
-    df = calculate_cci(df, 20)
-    df = calculate_donchian_channels(df, 20)
-    df = calculate_parabolic_sar(df)
+    try:
+        df = calculate_sma(df, 50)
+        df = calculate_rsi(df, 14)
+        df = calculate_bollinger_bands(df, 20, 2)
+        df = calculate_macd(df, 12, 26, 9)
+        df = calculate_atr(df, 14)
+        df = calculate_stochastic_oscillator(df, 14, 3)
+        df = calculate_obv(df)
+        df = calculate_cmf(df, 20)
+        df = calculate_williams_r(df, 14)
+        df = calculate_cci(df, 20)
+        df = calculate_donchian_channels(df, 20)
+        df = calculate_parabolic_sar(df)
+    except Exception as e:
+        return jsonify({"error": f"Error calculating indicators: {e}"}), 400
 
-    # Step 3: Define parameters for the backtest (example parameters)
+    print(f"Data after indicator calculations: {len(df)} rows")
+
+    # Step 3: Handle NaNs
+    # Drop NaNs only in essential columns
+    essential_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+    df.dropna(subset=essential_columns, inplace=True)
+
+    # Optionally fill NaNs in indicator columns
+    df.fillna(method='ffill', inplace=True)
+    df.fillna(method='bfill', inplace=True)
+
+    print(f"Data after handling NaNs: {len(df)} rows")
+
+    if df.empty:
+        return jsonify({"error": "No data available after processing. Please adjust your date range or check your indicators."}), 400
+
+    # Step 4: Define parameters for the backtest
     params = {
         "conditions": [
             {"indicator": "RSI", "period": 14, "comparison": "<", "value": 30},
@@ -71,27 +97,30 @@ def run_backtest():
     }
     DynamicStrategy.params = params
 
-    # Step 4: Run the backtest
-    bt = Backtest(df, DynamicStrategy, cash=10000, commission=0.002)
-    stats = bt.run()
+    # Step 5: Run the backtest
+    try:
+        bt = Backtest(df, DynamicStrategy, cash=10000, commission=0.002)
+        stats = bt.run()
+    except Exception as e:
+        return jsonify({"error": f"Error during backtesting: {e}"}), 400
 
-    # Step 5: Collect relevant performance metrics
+    # Step 6: Collect relevant performance metrics
     total_return = stats.get('Return [%]', "N/A")
     max_drawdown = stats.get('Max Drawdown [%]', "N/A")
     win_rate = stats.get('Win Rate [%]', "N/A")
     profit_factor = stats.get('Profit Factor', "N/A")
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")
 
-    # Step 6: Process trade history to prepare it for the frontend
+    # Step 7: Process trade history to prepare it for the frontend
     trade_history = []
     if '_trades' in dir(stats):
         trades_df = stats._trades.copy()
         timedelta_cols = trades_df.select_dtypes(include=['timedelta64[ns]', 'timedelta64']).columns
         for col in timedelta_cols:
-            trades_df[col] = trades_df[col].dt.total_seconds()  # Convert to total seconds or use str
+            trades_df[col] = trades_df[col].dt.total_seconds()
         trade_history = trades_df.to_dict(orient="records")
 
-    # Step 7: Format results for frontend
+    # Step 8: Format results for frontend
     results = {
         "total_return": total_return,
         "max_drawdown": max_drawdown,

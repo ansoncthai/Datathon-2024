@@ -18,7 +18,7 @@ class DynamicStrategy(Strategy):
         # Check entry conditions
         elif self.apply_conditions(self.params.get('conditions', []), any_condition=False):
             fixed_cash = self.params.get("fixed_cash_per_trade")
-            if fixed_cash is None:
+            if fixed_cash is None or fixed_cash == 0:
                 # Use all available cash if fixed_cash_per_trade is not defined
                 print(f"Entering position at {self.data.index[-1]}")
                 self.buy()

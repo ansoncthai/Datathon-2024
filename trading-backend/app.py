@@ -1,13 +1,11 @@
 import pandas as pd
 from flask import Flask, request, jsonify
 from backtesting import Backtest
+import numpy as np
 from dynamic_strategy import DynamicStrategy
 from data_validation import fetch_data, validate_and_clean_data
 from indicators import (
-    calculate_sma, calculate_rsi, calculate_bollinger_bands, calculate_macd,
-    calculate_atr, calculate_stochastic_oscillator, calculate_obv,
-    calculate_cmf, calculate_williams_r, calculate_cci,
-    calculate_donchian_channels, calculate_parabolic_sar
+    calculate_indicators  # Updated import
 )
 
 app = Flask(__name__)
@@ -55,31 +53,25 @@ def run_backtest():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    # Step 2: Calculate Indicators
+    # Step 2: Calculate Required Indicators
     try:
-        df = calculate_sma(df, 50)
-        df = calculate_rsi(df, 14)
-        df = calculate_bollinger_bands(df, 20, 2)
-        df = calculate_macd(df, 12, 26, 9)
-        df = calculate_atr(df, 14)
-        df = calculate_stochastic_oscillator(df, 14, 3)
-        df = calculate_obv(df)
-        df = calculate_cmf(df, 20)
-        df = calculate_williams_r(df, 14)
-        df = calculate_cci(df, 20)
-        df = calculate_donchian_channels(df, 20)
-        df = calculate_parabolic_sar(df)
+        # Collect all required indicators from conditions and exits
+        required_indicators = []
+        for condition in data['params'].get('conditions', []) + data['params'].get('exits', []):
+            required_indicators.append(condition)
+
+        # Calculate only the required indicators
+        df = calculate_indicators(df, required_indicators)
+        print("DataFrame columns after indicator calculations:", df.columns)
+        
     except Exception as e:
         return jsonify({"error": f"Error calculating indicators: {e}"}), 400
 
     print(f"Data after indicator calculations: {len(df)} rows")
 
     # Step 3: Handle NaNs
-    # Drop NaNs only in essential columns
     essential_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
     df.dropna(subset=essential_columns, inplace=True)
-
-    # Optionally fill NaNs in indicator columns
     df.fillna(method='ffill', inplace=True)
     df.fillna(method='bfill', inplace=True)
 
@@ -88,19 +80,17 @@ def run_backtest():
     if df.empty:
         return jsonify({"error": "No data available after processing. Please adjust your date range or check your indicators."}), 400
 
-    # Step 4: Define parameters for the backtest
-    params = {
-        "conditions": [
-            {"indicator": "RSI", "period": 14, "comparison": "<", "value": 30},
-            {"indicator": "SMA", "period": 50, "comparison": ">", "reference": "Close"}
-        ]
-    }
-    DynamicStrategy.params = params
+    # Step 4: Assign params to DynamicStrategy
+    DynamicStrategy.params = data.get("params", {})
 
-    # Step 5: Run the backtest
+    # Step 5: Run the backtest with provided initial_cash and commission
     try:
-        bt = Backtest(df, DynamicStrategy, cash=10000, commission=0.002)
+        initial_cash = data.get('initial_cash', 10000)
+        commission = data.get('commission', 0.002)
+        bt = Backtest(df, DynamicStrategy, cash=initial_cash, commission=commission)
         stats = bt.run()
+    except KeyError as e:
+        return jsonify({"error": f"Missing column in data: {e}"}), 400
     except Exception as e:
         return jsonify({"error": f"Error during backtesting: {e}"}), 400
 
@@ -110,6 +100,9 @@ def run_backtest():
     win_rate = stats.get('Win Rate [%]', "N/A")
     profit_factor = stats.get('Profit Factor', "N/A")
     sharpe_ratio = stats.get('Sharpe Ratio', "N/A")
+
+    if pd.isna(profit_factor) or np.isinf(profit_factor):
+        profit_factor = "Infinity" if np.isinf(profit_factor) else "N/A"
 
     # Step 7: Process trade history to prepare it for the frontend
     trade_history = []

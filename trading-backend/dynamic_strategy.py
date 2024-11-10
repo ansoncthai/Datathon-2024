@@ -124,6 +124,7 @@ class DynamicStrategy(Strategy):
         return indicator_mapping.get(indicator)
 
     def get_reference_value(self, reference):
+        
         # Try to get the reference value from indicators or data columns
         if hasattr(self.data, reference):
             return getattr(self.data, reference)[-1]

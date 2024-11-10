@@ -22,10 +22,10 @@ import {
     Time,
 } from 'lightweight-charts';
 
-const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0]; // 'YYYY-MM-DD'
-};
+// const getTodayDate = () => {
+//     const today = new Date();
+//     return today.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+// };
 
 type Condition = {
     indicator: string;
@@ -199,9 +199,9 @@ export default function BacktestingApp() {
                     }
 
                     chart.timeScale().fitContent();
-                } catch (error: any) {
+                } catch (error) {
                     console.error('Error fetching price data:', error);
-                    setFetchError(error.message || 'Error fetching price data');
+                    setFetchError((error as Error).message || 'Error fetching price data');
                 }
             } else {
                 console.log('Chart container or backtest parameters not set.');
@@ -306,9 +306,9 @@ export default function BacktestingApp() {
             console.log('Backtest results:', data);
             setBacktestResults(data);
             setFetchError(null); // Clear any previous fetch errors
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error running backtest:', err);
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -406,8 +406,8 @@ export default function BacktestingApp() {
     const totalTrades = backtestResults.trade_history.length;
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-            <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">
+        <div className="min-h-screen bg-white dark:bg-gray-900 p-4">
+            <h1 className="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-gray-200">
                 Backtesting Trading App
             </h1>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -438,6 +438,7 @@ export default function BacktestingApp() {
                                         id="start_date"
                                         type="date"
                                         value={backtestParams.start_date}
+                                        // className="py-2 px-3 text-base leading-tight"
                                         onChange={(e) =>
                                             setBacktestParams((prev) => ({
                                                 ...prev,
@@ -452,6 +453,7 @@ export default function BacktestingApp() {
                                         id="end_date"
                                         type="date"
                                         value={backtestParams.end_date}
+                                        
                                         onChange={(e) =>
                                             setBacktestParams((prev) => ({
                                                 ...prev,
@@ -515,7 +517,7 @@ export default function BacktestingApp() {
                                 <CardTitle>Backtesting Statistics</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                     <div className="text-center">
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
                                         <p className="text-2xl font-bold">
@@ -546,6 +548,28 @@ export default function BacktestingApp() {
                                                 : backtestResults.sharpe_ratio.toFixed(2)}
                                         </p>
                                     </div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Max Drawdown</p>
+                                        <p className="text-2xl font-bold">
+                                          {typeof backtestResults.max_drawdown === 'number'
+                                                  ? `${backtestResults.max_drawdown.toFixed(2)}%`
+                                                  : backtestResults.max_drawdown}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="mt-4"> {/* Added Total Return Card */}
+                            <CardHeader>
+                                <CardTitle>Total Return</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-center">
+                                    <p className="text-4xl font-bold text-primary">
+                                        {isNaN(backtestResults.total_return)
+                                            ? 'N/A'
+                                            : `${backtestResults.total_return.toFixed(2)}%`}
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>

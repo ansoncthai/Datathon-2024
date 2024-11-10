@@ -1,18 +1,21 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect, useRef } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+// import globals.css';
+
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select';
-import { PlusCircle, Trash2 } from 'lucide-react';
+} from "@/components/ui/select"
+import { PlusCircle, Trash2, Moon, Sun } from 'lucide-react'
+import { useTheme } from 'next-themes'
 
 import {
     createChart,
@@ -20,68 +23,52 @@ import {
     CrosshairMode,
     SeriesMarker,
     Time,
-} from 'lightweight-charts';
-
-// const getTodayDate = () => {
-//     const today = new Date();
-//     return today.toISOString().split('T')[0]; // 'YYYY-MM-DD'
-// };
+} from 'lightweight-charts'
 
 type Condition = {
-    indicator: string;
-    period: number;
-    comparison: string;
-    reference?: string;
-    value?: number;
-};
+    indicator: string
+    period: number
+    comparison: string
+    reference?: string
+    value?: number
+}
 
 type BacktestParams = {
-    ticker: string;
-    start_date: string;
-    end_date: string;
+    ticker: string
+    start_date: string
+    end_date: string
     params: {
-        conditions: Condition[];
-        exits: Condition[];
-    };
-    initial_cash: number;
-    commission: number;
-};
+        conditions: Condition[]
+        exits: Condition[]
+    }
+    initial_cash: number
+    commission: number
+    fixed_cash_position_size: number // Add this line
+}
 
 type PriceDataItem = {
-    date: string; // 'YYYY-MM-DD' format
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-};
+    date: string
+    open: number
+    high: number
+    low: number
+    close: number
+}
 
 type TradeHistoryEntry = {
-    Duration: number;
-    EntryBar: number;
-    EntryPrice: number;
-    EntryTime: string;
-    ExitBar: number;
-    ExitPrice: number;
-    ExitTime: string;
-    PnL: number;
-    ReturnPct: number;
-    Size: number;
-};
+    Duration: number
+    EntryBar: number
+    EntryPrice: number
+    EntryTime: string
+    ExitBar: number
+    ExitPrice: number
+    ExitTime: string
+    PnL: number
+    ReturnPct: number
+    Size: number
+}
 
 export default function BacktestingApp() {
     const [backtestParams, setBacktestParams] = useState<BacktestParams>({
-
-        // ticker: '',
-        // start_date: '',
-        // end_date: '',
-        // params: {
-        //     conditions: [],
-        //     exits: [],
-        // },
-        // initial_cash: 10000,
-        // commission: 0.002,
-        // fixed_cash_per_trade: 1000,
-
         ticker: "AAPL",
         start_date: "2019-01-01",
         end_date: "2023-12-31",
@@ -97,15 +84,16 @@ export default function BacktestingApp() {
         },
         initial_cash: 10000,
         commission: 0.002,
-    });
+        fixed_cash_position_size: 1000 // Add this line
+    })
 
     const [backtestResults, setBacktestResults] = useState<{
-        max_drawdown: string | number;
-        profit_factor: number;
-        sharpe_ratio: number;
-        total_return: number;
-        trade_history: TradeHistoryEntry[];
-        win_rate: number;
+        max_drawdown: string | number
+        profit_factor: number
+        sharpe_ratio: number
+        total_return: number
+        trade_history: TradeHistoryEntry[]
+        win_rate: number
     }>({
         max_drawdown: 'N/A',
         profit_factor: NaN,
@@ -113,104 +101,170 @@ export default function BacktestingApp() {
         total_return: NaN,
         trade_history: [],
         win_rate: NaN,
-    });
+    })
 
-    const chartContainerRef = useRef<HTMLDivElement | null>(null);
-    const [fetchError, setFetchError] = useState<string | null>(null);
-
+    const chartContainerRef = useRef<HTMLDivElement | null>(null)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const { theme, setTheme } = useTheme()
+    
     useEffect(() => {
-      let chart: IChartApi | null = null;
-  
-      const fetchDataAndRenderChart = async () => {
-          if (chartContainerRef.current && backtestParams.ticker && backtestParams.start_date && backtestParams.end_date) {
-              try {
-                  console.log("Initializing chart...");
-                  chart = createChart(chartContainerRef.current, {
-                      width: chartContainerRef.current.clientWidth,
-                      height: 400,
-                      layout: { background: { color: '#FFFFFF' }, textColor: '#000000' },
-                      grid: { vertLines: { color: '#e0e0e0' }, horzLines: { color: '#e0e0e0' }},
-                      crosshair: { mode: CrosshairMode.Normal },
-                      timeScale: { timeVisible: true, secondsVisible: false },
-                  });
-  
-                  const candleSeries = chart.addCandlestickSeries();
-                  const url = `http://127.0.0.1:5000/api/get-price-data?ticker=${encodeURIComponent(backtestParams.ticker)}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`;
-                  console.log('Fetching price data from:', url);
-  
-                  const response = await fetch(url);
-                  if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(errorData.error || 'Error fetching price data');
-                  }
-  
-                  const data: PriceDataItem[] = await response.json();
-                  console.log('Received price data:', data);
-  
-                  if (data.length === 0) {
-                      throw new Error('No price data available for the selected ticker and date range.');
-                  }
-  
-                  const priceData = data.map((item: PriceDataItem) => ({
-                      time: item.date as Time,
-                      open: item.open,
-                      high: item.high,
-                      low: item.low,
-                      close: item.close,
-                  }));
-  
-                  candleSeries.setData(priceData);
-  
-                  if (backtestResults.trade_history && backtestResults.trade_history.length > 0) {
-                      const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap((trade: TradeHistoryEntry) => {
-                          const entryTime = trade.EntryTime; // Directly use the date string
-                          const exitTime = trade.ExitTime;   // Directly use the date string
-  
-                          const markersList: SeriesMarker<Time>[] = [
-                              { 
-                                  time: entryTime as Time, 
-                                  position: 'belowBar', 
-                                  color: 'green', 
-                                  shape: 'arrowUp', 
-                                  text: `Buy @ ${trade.EntryPrice.toFixed(2)}` 
-                              }
-                          ];
-  
-                          if (exitTime) {
-                              markersList.push({ 
-                                  time: exitTime as Time, 
-                                  position: 'aboveBar', 
-                                  color: 'red', 
-                                  shape: 'arrowDown', 
-                                  text: `Sell @ ${trade.ExitPrice.toFixed(2)}` 
-                              });
-                          }
-  
-                          return markersList;
-                      });
-  
-                      candleSeries.setMarkers(markers);
-                  }
-  
-                  chart.timeScale().fitContent();
-              } catch (error) {
-                  console.error('Error fetching or rendering price data:', error);
-                  setFetchError((error as Error).message || 'Error fetching price data');
-              }
-          } else {
-              console.log('Chart container or backtest parameters not set.');
-          }
-      };
-  
-      fetchDataAndRenderChart();
-  
-      return () => {
-          if (chart) {
-              chart.remove();
-          }
-      };
-  }, [backtestResults, backtestParams]);
-  
+        let chart: IChartApi | null = null
+
+
+        const fetchDataAndRenderChart = async () => {
+            if (chartContainerRef.current && backtestParams.ticker && backtestParams.start_date && backtestParams.end_date) {
+                try {
+                    console.log("Initializing chart...")
+                    chart = createChart(chartContainerRef.current, {
+                        width: chartContainerRef.current.clientWidth,
+                        height: 600,
+                        layout: {
+                            background: { color: theme === 'dark' ? 'bg-black' : '#FFFFFF' },
+                            textColor: theme === 'dark' ? '#E5E7EB' : '#1F2937',
+                        },
+                        grid: {
+                            vertLines: { color: theme === 'dark' ? '#374151' : '#E5E7EB' },
+                            horzLines: { color: theme === 'dark' ? '#374151' : '#E5E7EB' },
+                        },
+                        crosshair: { mode: CrosshairMode.Normal },
+                        timeScale: { timeVisible: true, secondsVisible: false },
+                    })
+
+                    const candleSeries = chart.addCandlestickSeries({
+                        upColor: '#22C55E',
+                        downColor: '#EF4444',
+                        borderUpColor: '#22C55E',
+                        borderDownColor: '#EF4444',
+                        wickUpColor: '#22C55E',
+                        wickDownColor: '#EF4444',
+                    })
+
+                    const url = `http://127.0.0.1:5000/api/get-price-data?ticker=${encodeURIComponent(backtestParams.ticker)}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`
+                    console.log('Fetching price data from:', url)
+
+                    const response = await fetch(url)
+                    if (!response.ok) {
+                        const errorData = await response.json()
+                        throw new Error(errorData.error || 'Error fetching price data')
+                    }
+
+                    const data: PriceDataItem[] = await response.json()
+                    console.log('Received price data:', data)
+
+                    if (data.length === 0) {
+                        throw new Error('No price data available for the selected ticker and date range.')
+                    }
+
+                    const priceData = data.map((item: PriceDataItem) => ({
+                        time: item.date as Time,
+                        open: item.open,
+                        high: item.high,
+                        low: item.low,
+                        close: item.close,
+                    }))
+
+                    candleSeries.setData(priceData)
+
+                    const indicators = backtestParams.params.conditions
+                        .map(condition => ({ indicator: condition.indicator, period: condition.period }))
+                        .filter((value, index, self) =>
+                            index === self.findIndex((t) => (
+                                t.indicator === value.indicator && t.period === value.period
+                            ))
+                        )
+
+                    const indicatorColors: { [key: string]: string } = {
+                        "SMA": "blue",
+                        "EMA": "green",
+                        "RSI": "purple",
+                        "ATR": "orange",
+                        "CCI": "brown",
+                        "CMF": "cyan",
+                        "Williams %R": "magenta",
+                        "Donchian Channels": "pink",
+                        "Parabolic SAR": "yellow",
+                        "MACD": "red",
+                    }
+                    for (const { indicator, period } of indicators) {
+                        const indicatorUrl = `http://127.0.0.1:5000/api/get-indicator-data?ticker=${encodeURIComponent(backtestParams.ticker)}&indicator=${encodeURIComponent(indicator)}&period=${period}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`
+                        const indicatorResponse = await fetch(indicatorUrl)
+                        if (!indicatorResponse.ok) {
+                            const errorData = await indicatorResponse.json()
+                            throw new Error(errorData.error || `Error fetching ${indicator} data`)
+                        }
+
+                        const indicatorData = await indicatorResponse.json()
+                        console.log(`Received ${indicator} data:`, indicatorData)
+
+                        const color = indicatorColors[indicator] || "gray"
+
+                        const indicatorSeries = chart.addLineSeries({
+                            color: color,
+                            lineWidth: 1,
+                        })
+
+                        const lineData = indicatorData.map((item: { Date?: string, date?: string, value: number }) => {
+                            const dateString = item.Date || item.date
+                            if (!dateString) {
+                                console.error("Error: Missing date in indicator data", item)
+                                return null
+                            }
+
+                            const dateObj = new Date(dateString)
+                            if (isNaN(dateObj.getTime())) {
+                                console.error("Error: Invalid date in indicator data", item)
+                                return null
+                            }
+
+                            return {
+                                time: dateObj.getTime() / 1000 as Time,
+                                value: item.value,
+                            }
+                        }).filter(Boolean)
+
+                        indicatorSeries.setData(lineData)
+                    }
+
+                    if (backtestResults.trade_history && backtestResults.trade_history.length > 0) {
+                        const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap((trade: TradeHistoryEntry) => {
+                            const entryTime = new Date(trade.EntryTime).toISOString().split('T')[0]
+                            const exitTime = trade.ExitTime ? new Date(trade.ExitTime).toISOString().split('T')[0] : null
+
+                            console.log("Formatted ENTRY TIME:", entryTime)
+                            console.log("Formatted EXIT TIME:", exitTime)
+
+                            const markersList: SeriesMarker<Time>[] = [
+                                { time: entryTime as Time, position: 'belowBar', color: 'green', shape: 'arrowUp', text: `Buy @ ${trade.EntryPrice.toFixed(2)}` }
+                            ]
+
+                            if (exitTime) {
+                                markersList.push({ time: exitTime as Time, position: 'aboveBar', color: 'red', shape: 'arrowDown', text: `Sell @ ${trade.ExitPrice.toFixed(2)}` })
+                            }
+
+                            return markersList
+                        })
+
+                        candleSeries.setMarkers(markers)
+                    }
+
+                    chart.timeScale().fitContent()
+                } catch (error) {
+                    console.error('Error fetching or rendering price data:', error)
+                    setFetchError((error as Error).message || 'Error fetching price data')
+                }
+            } else {
+                console.log('Chart container or backtest parameters not set.')
+            }
+        }
+
+        fetchDataAndRenderChart()
+
+        return () => {
+            if (chart) {
+                chart.remove()
+            }
+        }
+    }, [backtestResults, backtestParams, theme])
 
     const updateCondition = (
         index: number,
@@ -218,7 +272,7 @@ export default function BacktestingApp() {
         value: string | number,
         isExit: boolean
     ) => {
-        const paramType = isExit ? 'exits' : 'conditions';
+        const paramType = isExit ? 'exits' : 'conditions'
         setBacktestParams((prev) => ({
             ...prev,
             params: {
@@ -227,61 +281,60 @@ export default function BacktestingApp() {
                     i === index ? { ...condition, [field]: value } : condition
                 ),
             },
-        }));
-    };
+        }))
+    }
 
     const addCondition = (isExit: boolean) => {
-        const paramType = isExit ? 'exits' : 'conditions';
+        const paramType = isExit ? 'exits' : 'conditions'
         setBacktestParams((prev) => ({
             ...prev,
             params: {
                 ...prev.params,
                 [paramType]: [
                     ...prev.params[paramType],
-                    { indicator: '', period: 0, comparison: '', reference: '' }, // Added reference as empty
+                    { indicator: '', period: 0, comparison: '', reference: '' },
                 ],
             },
-        }));
-    };
+        }))
+    }
 
     const removeCondition = (index: number, isExit: boolean) => {
-        const paramType = isExit ? 'exits' : 'conditions';
+        const paramType = isExit ? 'exits' : 'conditions'
         setBacktestParams((prev) => ({
             ...prev,
             params: {
                 ...prev.params,
                 [paramType]: prev.params[paramType].filter((_, i) => i !== index),
             },
-        }));
-    };
+        }))
+    }
 
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const handleBacktest = async () => {
-        console.log('Backtest parameters:', backtestParams);
-        setLoading(true);
-        setError(null);
+        console.log('Backtest parameters:', backtestParams)
+        setLoading(true)
+        setError(null)
 
-        // Input validation before making the request
         if (!backtestParams.ticker || !backtestParams.start_date || !backtestParams.end_date) {
-            setError('Please enter the ticker, start date, and end date.');
-            setLoading(false);
-            return;
+            setError('Please enter the ticker, start date, and end date.')
+            setLoading(false)
+            return
         }
 
         if (
             backtestParams.params.conditions.length === 0 ||
             backtestParams.params.exits.length === 0
         ) {
-            setError('Please add at least one entry and one exit condition.');
-            setLoading(false);
-            return;
+            setError('Please add at least one entry and one exit condition.')
+            setLoading(false)
+            return
         }
 
         try {
-            const url = 'http://127.0.0.1:5000/api/run-backtest';
-            console.log('Sending backtest request to:', url);
+            const url = 'http://127.0.0.1:5000/api/run-backtest'
+            console.log('Sending backtest request to:', url)
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -289,24 +342,24 @@ export default function BacktestingApp() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(backtestParams),
-            });
+            })
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Error running backtest');
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Error running backtest')
             }
 
-            const data = await response.json();
-            console.log('Backtest results:', data);
-            setBacktestResults(data);
-            setFetchError(null); // Clear any previous fetch errors
+            const data = await response.json()
+            console.log('Backtest results:', data)
+            setBacktestResults(data)
+            setFetchError(null)
         } catch (err) {
-            console.error('Error running backtest:', err);
-            setError((err as Error).message);
+            console.error('Error running backtest:', err)
+            setError((err as Error).message)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const renderConditionInputs = (
         condition: Condition,
@@ -315,7 +368,7 @@ export default function BacktestingApp() {
     ) => (
         <div
             key={index}
-            className="space-y-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg"
+            className="space-y-2 p-4 bg-gray-50 dark:bg-black rounded-lg"
         >
             <div className="flex justify-between items-center">
                 <Label>
@@ -339,7 +392,6 @@ export default function BacktestingApp() {
                         <SelectItem value="SMA">SMA</SelectItem>
                         <SelectItem value="EMA">EMA</SelectItem>
                         <SelectItem value="RSI">RSI</SelectItem>
-                        {/* Add more indicators as needed */}
                     </SelectContent>
                 </Select>
                 <Input
@@ -394,16 +446,30 @@ export default function BacktestingApp() {
                 )}
             </div>
         </div>
-    );
+    )
 
-    // Calculate total trades
-    const totalTrades = backtestResults.trade_history.length;
+    const totalTrades = backtestResults.trade_history.length
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900 p-4">
-            <h1 className="text-3xl font-bold mb-6 text-center text-gray-900 dark:text-gray-200">
-                Backtesting Trading App
-            </h1>
+        <div className="min-h-screen bg-gray-50 dark:bg-black p-4">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-200 text-center w-full">
+                    BackTrader, QuantWise, TradeWise, BackTrack
+                </h1>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="rounded-full"
+                >
+                    {theme === 'dark' ? (
+                        <Sun className="h-[1.2rem] w-[1.2rem]" />
+                    ) : (
+                        <Moon className="h-[1.2rem] w-[1.2rem]" />
+                    )}
+                    <span className="sr-only">Toggle theme</span>
+                </Button>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-2">
                     <Card>
@@ -411,81 +477,100 @@ export default function BacktestingApp() {
                             <CardTitle>Backtest Parameters</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-4 grid grid-cols-2 gap-4">
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="ticker">Ticker</Label>
-                                    <Input
-                                        id="ticker"
-                                        value={backtestParams.ticker}
-                                        onChange={(e) =>
-                                            setBacktestParams((prev) => ({
-                                                ...prev,
-                                                ticker: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="e.g., AAPL"
-                                    />
+                            <form className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="ticker">Ticker</Label>
+                                        <Input
+                                            id="ticker"
+                                            value={backtestParams.ticker}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    ticker: e.target.value,
+                                                }))
+                                            }
+                                            placeholder="e.g., AAPL"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="initial_cash">Initial Cash</Label>
+                                        <Input
+                                            id="initial_cash"
+                                            type="number"
+                                            value={backtestParams.initial_cash}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    initial_cash: parseFloat(e.target.value) || 0,
+                                                }))
+                                            }
+                                            placeholder="e.g., 10000"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="start_date">Start Date</Label>
-                                    <Input
-                                        id="start_date"
-                                        type="date"
-                                        value={backtestParams.start_date}
-                                        // className="py-2 px-3 text-base leading-tight"
-                                        onChange={(e) =>
-                                            setBacktestParams((prev) => ({
-                                                ...prev,
-                                                start_date: e.target.value,
-                                            }))
-                                        }
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="start_date">Start Date</Label>
+                                        <Input
+                                            id="start_date"
+                                            type="date"
+                                            value={backtestParams.start_date}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    start_date: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="end_date">End Date</Label>
+                                        <Input
+                                            id="end_date"
+                                            type="date"
+                                            value={backtestParams.end_date}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    end_date: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="end_date">End Date</Label>
-                                    <Input
-                                        id="end_date"
-                                        type="date"
-                                        value={backtestParams.end_date}
-                                        
-                                        onChange={(e) =>
-                                            setBacktestParams((prev) => ({
-                                                ...prev,
-                                                end_date: e.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="initial_cash">Initial Cash</Label>
-                                    <Input
-                                        id="initial_cash"
-                                        type="number"
-                                        value={backtestParams.initial_cash}
-                                        onChange={(e) =>
-                                            setBacktestParams((prev) => ({
-                                                ...prev,
-                                                initial_cash: parseFloat(e.target.value) || 0,
-                                            }))
-                                        }
-                                        placeholder="e.g., 10000"
-                                    />
-                                </div>
-                                <div className="flex flex-col space-y-1">
-                                    <Label htmlFor="commission">Commission</Label>
-                                    <Input
-                                        id="commission"
-                                        type="number"
-                                        step="0.001"
-                                        value={backtestParams.commission}
-                                        onChange={(e) =>
-                                            setBacktestParams((prev) => ({
-                                                ...prev,
-                                                commission: parseFloat(e.target.value) || 0,
-                                            }))
-                                        }
-                                        placeholder="e.g., 0.002"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="commission">Commission</Label>
+                                        <Input
+                                            id="commission"
+                                            type="number"
+                                            step="0.001"
+                                            value={backtestParams.commission}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    commission: parseFloat(e.target.value) || 0,
+                                                }))
+                                            }
+                                            placeholder="e.g., 0.002"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <Label htmlFor="fixed_cash_position_size">Fixed Cash Position Size</Label>
+                                        <Input
+                                            id="fixed_cash_position_size"
+                                            type="number"
+                                            value={backtestParams.fixed_cash_position_size}
+                                            onChange={(e) =>
+                                                setBacktestParams((prev) => ({
+                                                    ...prev,
+                                                    fixed_cash_position_size: parseFloat(e.target.value) || 0,
+                                                }))
+                                            }
+                                            placeholder="e.g., 1000"
+                                        />
+                                    </div>
                                 </div>
                             </form>
                         </CardContent>
@@ -493,13 +578,12 @@ export default function BacktestingApp() {
                     <div className="lg:col-span-2 space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Trading Chart</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div
                                     ref={chartContainerRef}
                                     id="tradingview_chart"
-                                    className="w-full h-[400px]"
+                                    className="w-full h-[600px]"
                                 ></div>
                                 {fetchError && (
                                     <p className="text-red-500 text-center mt-2">{fetchError}</p>
@@ -545,15 +629,15 @@ export default function BacktestingApp() {
                                     <div className="text-center">
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Max Drawdown</p>
                                         <p className="text-2xl font-bold">
-                                          {typeof backtestResults.max_drawdown === 'number'
-                                                  ? `${backtestResults.max_drawdown.toFixed(2)}%`
-                                                  : backtestResults.max_drawdown}
+                                            {typeof backtestResults.max_drawdown === 'number'
+                                                ? `${backtestResults.max_drawdown.toFixed(2)}%`
+                                                : backtestResults.max_drawdown}
                                         </p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="mt-4"> {/* Added Total Return Card */}
+                        <Card className="mt-4">
                             <CardHeader>
                                 <CardTitle>Total Return</CardTitle>
                             </CardHeader>
@@ -615,5 +699,5 @@ export default function BacktestingApp() {
                 </div>
             </div>
         </div>
-    );
+    )
 }

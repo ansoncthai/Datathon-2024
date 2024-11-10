@@ -1,5 +1,5 @@
 import yfinance as yf
-import backtrader as bt
+import backtrader a
 import pandas as pd
 
 # Step 1: Fetch historical data
@@ -10,7 +10,6 @@ data = yf.download(ticker, start=start_date, end=end_date, group_by='column')
 
 # Select only the first level of each column and convert to lowercase
 data.columns = [col[0].lower() if isinstance(col, tuple) else col.lower() for col in data.columns]
-print(data.columns)
 
 # Step 3: Handle any NaN values
 data.fillna(method='ffill', inplace=True)  # Forward fill any NaNs

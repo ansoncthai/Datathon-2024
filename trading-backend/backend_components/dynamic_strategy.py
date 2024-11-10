@@ -17,7 +17,7 @@ class DynamicStrategy(Strategy):
         close_series = pd.Series(self.data.Close) if not isinstance(self.data.Close, pd.Series) else self.data.Close
 
         # Initialize indicators based on user parameters
-
+        
         # 1. SMA (Simple Moving Average)
         if 'sma_period' in self.params:
             self.sma = self.I(SMA, close_series, self.params['sma_period'])

@@ -127,9 +127,23 @@ export default function BacktestingApp() {
                 { time: '2019-06-03', open: 43.87, high: 44.00, low: 43.50, close: 43.98 },
                 { time: '2019-06-04', open: 44.00, high: 45.00, low: 43.90, close: 44.50 },
                 { time: '2019-06-05', open: 44.50, high: 46.50, low: 44.20, close: 46.07 },
+                { time: '2019-06-06', open: 46.07, high: 47.00, low: 45.50, close: 46.50 },
+                { time: '2019-06-07', open: 46.50, high: 47.20, low: 46.00, close: 46.70 },
+                { time: '2019-06-10', open: 46.70, high: 47.80, low: 46.50, close: 47.20 },
+                { time: '2019-06-11', open: 47.20, high: 47.90, low: 46.90, close: 47.50 },
+                { time: '2019-06-12', open: 47.50, high: 48.20, low: 47.00, close: 47.80 },
+                { time: '2019-06-13', open: 47.80, high: 48.50, low: 47.40, close: 48.00 },
+                { time: '2019-06-14', open: 48.00, high: 48.50, low: 47.60, close: 47.90 },
+                { time: '2019-06-17', open: 47.90, high: 48.10, low: 47.20, close: 47.70 },
+                { time: '2019-06-18', open: 47.70, high: 48.50, low: 47.60, close: 48.20 },
+                { time: '2019-06-19', open: 48.20, high: 49.00, low: 48.10, close: 48.90 },
+                { time: '2019-06-20', open: 48.90, high: 49.50, low: 48.60, close: 49.00 },
                 { time: '2020-02-28', open: 62.00, high: 65.00, low: 61.50, close: 64.44 },
                 { time: '2020-03-02', open: 65.00, high: 68.00, low: 64.00, close: 67.00 },
                 { time: '2020-03-03', open: 67.00, high: 76.00, low: 66.00, close: 75.92 },
+                { time: '2020-03-04', open: 75.92, high: 77.00, low: 75.00, close: 76.50 },
+                { time: '2020-03-05', open: 76.50, high: 78.00, low: 75.80, close: 77.20 },
+                { time: '2020-03-06', open: 77.20, high: 79.00, low: 76.50, close: 78.00 },
                 // ... add more data points as needed
             ]
             

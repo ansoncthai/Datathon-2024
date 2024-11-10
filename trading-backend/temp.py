@@ -1,49 +1,39 @@
 from backtesting import Strategy
 
 class DynamicStrategy(Strategy):
-    # params = {}
-    params = {"fixed_cash_per_trade": None}
+    params = {"fixed_cash_per_trade": None}  # Use None to indicate using all cash if not specified
 
     def init(self):
         pass
-        # self.position_size = self.params.get('position_size', 10000)
-        
-
+    
     def next(self):
         # Check exit conditions first
         if self.position:
             if self.apply_conditions(self.params.get('exits', []), any_condition=True):
                 print(f"Exiting position at {self.data.index[-1]}")
                 self.position.close()
+
         # Check entry conditions
         elif self.apply_conditions(self.params.get('conditions', []), any_condition=False):
+            print(f"Entering position at {self.data.index[-1]}")
+            
+            # Determine the amount of cash to use for each trade
             fixed_cash = self.params.get("fixed_cash_per_trade")
             if fixed_cash is None:
                 # Use all available cash if fixed_cash_per_trade is not defined
-                print(f"Entering position at {self.data.index[-1]}")
-                self.buy()
+                cash_to_use = self.equity
             else:
                 # Use the fixed cash amount specified
                 cash_to_use = fixed_cash
-                shares = cash_to_use / self.data.Close[-1]
-                shares = int(shares)  # Ensure shares is a whole number
 
-                if shares > 0:  # Proceed only if shares is positive
-                    self.buy(size=shares)  # Enter position with calculated shares
-                else:
-                    print("Not enough cash for even one share at the current price.")
+            # Calculate the number of shares based on the cash amount to use
+            shares = cash_to_use / self.data.Close[-1]
+            shares = int(shares)  # Ensure shares is a whole number
 
-
-        # if self.position:
-        #     if self.apply_conditions(self.params.get('exits', []), any_condition=True):
-        #         print(f"Exiting position at {self.data.index[-1]}")
-        #         self.position.close()
-        # # Check entry conditions
-        # elif self.apply_conditions(self.params.get('conditions', []), any_condition=False):
-        #     print(f"Entering position at {self.data.index[-1]}")
-        #     # Calculate the number of shares to buy
-        #     size = self.position_size / self.data.Close[-1]
-        #     self.buy(size=size)
+            if shares > 0:  # Proceed only if shares is positive
+                self.buy(size=shares)  # Enter position with calculated shares
+            else:
+                print("Not enough cash for even one share at the current price.")
 
     def apply_conditions(self, conditions, any_condition=False):
         try:

@@ -10,10 +10,21 @@ def calculate_indicators(df, conditions):
         period = condition.get("period", 14)  # Default period if not specified
 
         # Check if the main indicator is already calculated
-        indicator_column = get_indicator_column_name(indicator, period)
-        if indicator_column not in df.columns and indicator_column not in calculated_indicators:
-            df = calculate_indicator(df, indicator, period)
-            calculated_indicators.add(indicator_column)
+        indicator_columns = get_indicator_column_name(indicator, period)
+        if not indicator_columns:
+            raise ValueError(f"Indicator {indicator} not recognized.")
+
+        if isinstance(indicator_columns, list):
+            missing_columns = [col for col in indicator_columns if col not in df.columns and col not in calculated_indicators]
+            if missing_columns:
+                print(f"Calculating indicator: {indicator} with period: {period}")
+                df = calculate_indicator(df, indicator, period)
+                calculated_indicators.update(indicator_columns)
+        else:
+            if indicator_columns not in df.columns and indicator_columns not in calculated_indicators:
+                print(f"Calculating indicator: {indicator} with period: {period}")
+                df = calculate_indicator(df, indicator, period)
+                calculated_indicators.add(indicator_columns)
 
         # Reference indicator
         reference = condition.get("reference", None)
@@ -25,10 +36,21 @@ def calculate_indicators(df, conditions):
                 ref_period = int(ref_parts[1])
 
                 # Check if the reference indicator is already calculated
-                ref_indicator_column = get_indicator_column_name(ref_indicator, ref_period)
-                if ref_indicator_column not in df.columns and ref_indicator_column not in calculated_indicators:
-                    df = calculate_indicator(df, ref_indicator, ref_period)
-                    calculated_indicators.add(ref_indicator_column)
+                ref_indicator_columns = get_indicator_column_name(ref_indicator, ref_period)
+                if not ref_indicator_columns:
+                    raise ValueError(f"Reference indicator {ref_indicator} not recognized.")
+
+                if isinstance(ref_indicator_columns, list):
+                    missing_ref_columns = [col for col in ref_indicator_columns if col not in df.columns and col not in calculated_indicators]
+                    if missing_ref_columns:
+                        print(f"Calculating reference indicator: {ref_indicator} with period: {ref_period}")
+                        df = calculate_indicator(df, ref_indicator, ref_period)
+                        calculated_indicators.update(ref_indicator_columns)
+                else:
+                    if ref_indicator_columns not in df.columns and ref_indicator_columns not in calculated_indicators:
+                        print(f"Calculating reference indicator: {ref_indicator} with period: {ref_period}")
+                        df = calculate_indicator(df, ref_indicator, ref_period)
+                        calculated_indicators.add(ref_indicator_columns)
             else:
                 raise ValueError(f"Invalid reference format: {reference}")
 
@@ -36,6 +58,7 @@ def calculate_indicators(df, conditions):
 
 def calculate_indicator(df, indicator, period):
     """Calculates the specified indicator and adds it to the DataFrame."""
+    print(f"Calculating indicator: {indicator} with period: {period}")
     if indicator == "SMA":
         df = calculate_sma(df, period)
     elif indicator == "EMA":
@@ -60,7 +83,6 @@ def calculate_indicator(df, indicator, period):
         raise ValueError(f"Indicator {indicator} not supported.")
     return df
 
-
 def get_indicator_column_name(indicator, period):
     """Maps indicator names to DataFrame column names."""
     indicator_mapping = {
@@ -71,9 +93,10 @@ def get_indicator_column_name(indicator, period):
         "CCI": f"CCI_{period}",
         "CMF": f"CMF_{period}",
         "Williams %R": f"Williams_%R_{period}",
-        "Donchian Channels": [f"DCL_{period}", f"DCU_{period}"],  # Lower and Upper bands
-        "Parabolic SAR": ["PSARl_0.02_0.2", "PSARs_0.02_0.2"],  # Long and Short PSAR
-        "MACD": ["MACD_12_26_9", "MACDh_12_26_9", "MACDs_12_26_9"],  # MACD columns
+        # For indicators with multiple outputs, select the primary one
+        "Donchian Channels": f"DCL_{period}",  # Lower band
+        "Parabolic SAR": "PSAR_0.02_0.2",      # Default PSAR column
+        "MACD": f"MACD_12_26_9",               # MACD line
         # Add more mappings as needed
     }
     return indicator_mapping.get(indicator)
@@ -89,15 +112,9 @@ def calculate_ema(df, period):
     df[f"EMA_{period}"] = ta.ema(df['Close'], length=period)
     return df
 
-def calculate_rsi(df, period, overbought=70, oversold=30):
+def calculate_rsi(df, period):
     """Relative Strength Index (RSI)"""
     df[f"RSI_{period}"] = ta.rsi(df['Close'], length=period)
-    return df
-
-def calculate_bollinger_bands(df, period, std_dev):
-    """Bollinger Bands"""
-    bb = ta.bbands(df['Close'], length=period, std=std_dev)
-    df = pd.concat([df, bb], axis=1)
     return df
 
 def calculate_macd(df, fast_period, slow_period, signal_period):
@@ -109,26 +126,6 @@ def calculate_macd(df, fast_period, slow_period, signal_period):
 def calculate_atr(df, period):
     """Average True Range (ATR)"""
     df[f"ATR_{period}"] = ta.atr(df['High'], df['Low'], df['Close'], length=period)
-    return df
-
-def calculate_stochastic_oscillator(df, k_period, d_period):
-    """Stochastic Oscillator"""
-    stoch = ta.stoch(df['High'], df['Low'], df['Close'], k=k_period, d=d_period)
-    df = pd.concat([df, stoch], axis=1)
-    return df
-
-def calculate_obv(df):
-    """On-Balance Volume (OBV)"""
-    # Check if 'Close' and 'Volume' columns exist
-    if 'Close' not in df.columns or 'Volume' not in df.columns:
-        raise ValueError("DataFrame must contain 'Close' and 'Volume' columns for OBV calculation.")
-
-    # Drop rows with missing values in 'Close' or 'Volume'
-    df = df.dropna(subset=['Close', 'Volume'])
-
-    # Calculate OBV
-    obv = ta.obv(df['Close'], df['Volume'])
-    df["OBV"] = obv
     return df
 
 def calculate_cmf(df, period):

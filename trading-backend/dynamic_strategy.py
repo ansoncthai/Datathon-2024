@@ -4,58 +4,92 @@ class DynamicStrategy(Strategy):
     params = {}
 
     def init(self):
-        pass
+        # pass
+        self.position_size = self.params.get('position_size', 10000)
 
     def next(self):
         # Check exit conditions first
-        if self.position and self.apply_conditions(self.params.get('exits', [])):
-            self.position.close()
+        if self.position:
+            if self.apply_conditions(self.params.get('exits', []), any_condition=True):
+                print(f"Exiting position at {self.data.index[-1]}")
+                self.position.close()
         # Check entry conditions
-        elif not self.position and self.apply_conditions(self.params.get('conditions', [])):
+        elif self.apply_conditions(self.params.get('conditions', []), any_condition=False):
+            print(f"Entering position at {self.data.index[-1]}")
             self.buy()
 
 
-    def apply_conditions(self, conditions):
+        # if self.position:
+        #     if self.apply_conditions(self.params.get('exits', []), any_condition=True):
+        #         print(f"Exiting position at {self.data.index[-1]}")
+        #         self.position.close()
+        # # Check entry conditions
+        # elif self.apply_conditions(self.params.get('conditions', []), any_condition=False):
+        #     print(f"Entering position at {self.data.index[-1]}")
+        #     # Calculate the number of shares to buy
+        #     size = self.position_size / self.data.Close[-1]
+        #     self.buy(size=size)
+
+    def apply_conditions(self, conditions, any_condition=False):
         try:
-            for condition in conditions:
-                indicator = condition.get("indicator")
-                period = condition.get("period")
-                comparison = condition.get("comparison")
-                value = condition.get("value")
-                reference = condition.get("reference", None)
-
-                # Get the primary column for the indicator
-                column = self.get_indicator_column_name(indicator, period)
-
-                if not column:
-                    print(f"Indicator {indicator} not recognized.")
-                    return False
-
-                # Check if the column exists
-                if not hasattr(self.data, column):
-                    print(f"Error: {column} not found in data columns.")
-                    return False  # Indicator not calculated or doesn't exist
-
-                # Fetch the indicator value at the current time step
-                indicator_value = getattr(self.data, column)[-1]
-
-                # Fetch the reference value
-                if reference:
-                    reference_value = self.get_reference_value(reference)
-                    if reference_value is None:
+            if any_condition:
+                # Logical OR: Return True if any condition is met
+                for condition in conditions:
+                    if self.evaluate_single_condition(condition):
+                        print(f"Exit condition met: {condition}")
+                        return True
+                return False
+            else:
+                # Logical AND: Return False if any condition is not met
+                for condition in conditions:
+                    if not self.evaluate_single_condition(condition):
                         return False
-                else:
-                    reference_value = value
-
-                # Evaluate the condition
-                if not self.evaluate_condition(indicator_value, comparison, reference_value):
-                    return False
-
+                print(f"All entry conditions met at {self.data.index[-1]}")
+                return True
         except Exception as e:
             print(f"Error applying conditions: {e}")
             return False
 
-        return True
+    def evaluate_single_condition(self, condition):
+        indicator = condition.get("indicator")
+        period = condition.get("period")
+        comparison = condition.get("comparison")
+        value = condition.get("value")
+        reference = condition.get("reference", None)
+
+        # Get the primary column for the indicator
+        column = self.get_indicator_column_name(indicator, period)
+
+        if not column:
+            print(f"Indicator {indicator} not recognized.")
+            return False
+
+        # Check if the column exists
+        if not hasattr(self.data, column):
+            print(f"Error: {column} not found in data columns.")
+            return False  # Indicator not calculated or doesn't exist
+
+        # Fetch the indicator value at the current time step
+        indicator_value = getattr(self.data, column)[-1]
+
+        # Fetch the reference value
+        if reference:
+            reference_value = self.get_reference_value(reference)
+            if reference_value is None:
+                return False
+        else:
+            reference_value = value
+
+        # Evaluate the condition
+        result = self.evaluate_condition(indicator_value, comparison, reference_value)
+
+        # Debugging output
+        print(f"Time: {self.data.index[-1]}, Indicator: {indicator}, "
+              f"Value: {indicator_value}, Reference: {reference_value}, "
+              f"Condition: {indicator_value} {comparison} {reference_value}, "
+              f"Result: {result}")
+
+        return result
 
     def get_indicator_column_name(self, indicator, period):
         # Mapping of indicators to their primary column names

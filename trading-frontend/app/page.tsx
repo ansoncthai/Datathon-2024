@@ -185,19 +185,26 @@ export default function BacktestingApp() {
                             lineWidth: 1,
                         });
 
-                        const lineData = indicatorData.map((item: { date: string, value: number }) => {
-                            const dateObj = new Date(item.date); // Parse date string
+                        const lineData = indicatorData.map((item: { Date?: string, date?: string, value: number }) => {
+                            // Access either 'Date' or 'date' key in case the backend sends different cases
+                            const dateString = item.Date || item.date;
+                            if (!dateString) {
+                                console.error("Error: Missing date in indicator data", item);
+                                return null; // Skip items with missing date
+                            }
+
+                            const dateObj = new Date(dateString); // Parse date string
                             if (isNaN(dateObj.getTime())) {
                                 console.error("Error: Invalid date in indicator data", item);
-                                return null; // Skip items with invalid dates
+                                return null; // Skip items with invalid date
                             }
-                
+
                             return {
                                 time: dateObj.getTime() / 1000 as Time, // Convert to Unix timestamp
                                 value: item.value,
                             };
                         }).filter(Boolean); // Filter out any null values
-                
+
                         indicatorSeries.setData(lineData);
                     }
 

@@ -101,17 +101,17 @@ def get_indicator_column_name(indicator, period):
     return indicator_mapping.get(indicator)
 
 # Existing indicator calculation functions
-def calculate_sma(df, period):
+def calculate_sma(df, period): # good
     """Simple Moving Average (SMA)"""
     df[f"SMA_{period}"] = ta.sma(df['Close'], length=period)
     return df
 
-def calculate_ema(df, period):
+def calculate_ema(df, period): # good
     """Exponential Moving Average (EMA)"""
     df[f"EMA_{period}"] = ta.ema(df['Close'], length=period)
     return df
 
-def calculate_rsi(df, period):
+def calculate_rsi(df, period): # good
     """Relative Strength Index (RSI)"""
     df[f"RSI_{period}"] = ta.rsi(df['Close'], length=period)
     return df
@@ -121,40 +121,40 @@ def calculate_rsi(df, period):
 #     macd = ta.macd(df['Close'], fast=fast_period, slow=slow_period, signal=signal_period)
 #     df = pd.concat([df, macd], axis=1)
 #     return df
-def calculate_macd(df, fast_period, slow_period, signal_period):
+def calculate_macd(df, fast_period, slow_period, signal_period): # Broken
     """Moving Average Convergence Divergence (MACD)"""
     # Calculate MACD line only (you can specify which line to return)
     macd = ta.macd(df['Close'], fast=fast_period, slow=slow_period, signal=signal_period)['MACD_12_26_9']
     df['MACD_12_26_9'] = macd  # Only add the MACD line to the DataFrame
     return df
 
-def calculate_atr(df, period):
+def calculate_atr(df, period): # good
     """Average True Range (ATR)"""
     df[f"ATR_{period}"] = ta.atr(df['High'], df['Low'], df['Close'], length=period)
     return df
 
-def calculate_cmf(df, period):
+def calculate_cmf(df, period): # good
     """Chaikin Money Flow (CMF)"""
     df[f"CMF_{period}"] = ta.cmf(df['High'], df['Low'], df['Close'], df['Volume'], length=period)
     return df
 
-def calculate_williams_r(df, period):
+def calculate_williams_r(df, period): # good
     """Williams %R"""
     df[f"Williams_%R_{period}"] = ta.willr(df['High'], df['Low'], df['Close'], length=period)
     return df
 
-def calculate_cci(df, period):
+def calculate_cci(df, period): # good
     """Commodity Channel Index (CCI)"""
     df[f"CCI_{period}"] = ta.cci(df['High'], df['Low'], df['Close'], length=period)
     return df
 
-def calculate_donchian_channels(df, period):
+def calculate_donchian_channels(df, period): # Broken
     """Donchian Channels"""
     dc = ta.donchian(df['High'], df['Low'], lower_length=period, upper_length=period)
     df = pd.concat([df, dc], axis=1)
     return df
 
-def calculate_parabolic_sar(df, af=0.02, max_af=0.2):
+def calculate_parabolic_sar(df, af=0.02, max_af=0.2): # Broken
     """Parabolic SAR"""
     psar = ta.psar(df['High'], df['Low'], df['Close'], af=af, max_af=max_af)
     df = pd.concat([df, psar], axis=1)

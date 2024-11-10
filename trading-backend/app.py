@@ -18,6 +18,9 @@ def get_price_data():
     ticker = request.args.get('ticker')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    print("Ticker:", ticker)
+    print("Start Date:", start_date)
+    print("End Date:", end_date)
 
     # Validate inputs
     if not ticker or not start_date or not end_date:
@@ -27,9 +30,33 @@ def get_price_data():
         df = fetch_data(ticker, start_date, end_date)
         df.reset_index(inplace=True)
         df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-        data = df[['Date', 'Open', 'High', 'Low', 'Close']].to_dict(orient='records')
+
+        # if 'Date' in df.columns:
+        #     df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.strftime('%Y-%m-%d')
+        #     print("Formatted Date column:", df['Date'].head())
+        # else:
+        #     print("Warning: 'Date' column not found in DataFrame")
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = ['_'.join(filter(None, col)).lower() for col in df.columns]
+            print("Flattened columns:", df.columns)
+
+        column_mapping = {
+            f"date": "date",
+            f"open_{ticker.lower()}": "open",
+            f"high_{ticker.lower()}": "high",
+            f"low_{ticker.lower()}": "low",
+            f"close_{ticker.lower()}": "close"
+        }
+        df.rename(columns=column_mapping, inplace=True)
+
+        # Convert to dictionary and check for tuple keys
+        data = df[['date', 'open', 'high', 'low', 'close']].to_dict(orient='records')
+        print("Formatted data:", data[:5])  # Log a sample of the data
+
         return jsonify(data)
     except Exception as e:
+        print("Exception occurred:", e)
         return jsonify({'error': str(e)}), 400
 
 

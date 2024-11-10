@@ -70,12 +70,30 @@ type TradeHistoryEntry = {
 
 export default function BacktestingApp() {
     const [backtestParams, setBacktestParams] = useState<BacktestParams>({
-        ticker: '',
-        start_date: '',
-        end_date: '',
+
+        // ticker: '',
+        // start_date: '',
+        // end_date: '',
+        // params: {
+        //     conditions: [],
+        //     exits: [],
+        // },
+        // initial_cash: 10000,
+        // commission: 0.002,
+        // fixed_cash_per_trade: 1000,
+
+        ticker: "AAPL",
+        start_date: "2019-01-01",
+        end_date: "2023-12-31",
         params: {
-            conditions: [],
-            exits: [],
+            conditions: [
+                { indicator: "SMA", period: 20, comparison: ">", reference: "SMA_50" },
+                { indicator: "RSI", period: 14, comparison: "<", value: 30 }
+            ],
+            exits: [
+                { indicator: "SMA", period: 20, comparison: "<", reference: "SMA_50" },
+                { indicator: "RSI", period: 14, comparison: ">", value: 70 }
+            ]
         },
         initial_cash: 10000,
         commission: 0.002,
@@ -98,49 +116,29 @@ export default function BacktestingApp() {
     });
 
     const chartContainerRef = useRef<HTMLDivElement | null>(null);
-
     const [fetchError, setFetchError] = useState<string | null>(null);
 
     useEffect(() => {
         let chart: IChartApi | null = null;
 
         const fetchDataAndRenderChart = async () => {
-            if (
-                chartContainerRef.current &&
-                backtestParams.ticker &&
-                backtestParams.start_date &&
-                backtestParams.end_date
-            ) {
+            if (chartContainerRef.current && backtestParams.ticker && backtestParams.start_date && backtestParams.end_date) {
                 try {
-                    // Initialize the chart
+                    console.log("Initializing chart...");
                     chart = createChart(chartContainerRef.current, {
                         width: chartContainerRef.current.clientWidth,
                         height: 400,
-                        layout: {
-                            background: { color: '#FFFFFF' },
-                            textColor: '#000000',
-                        },
-                        grid: {
-                            vertLines: { color: '#e0e0e0' },
-                            horzLines: { color: '#e0e0e0' },
-                        },
-                        crosshair: {
-                            mode: CrosshairMode.Normal,
-                        },
-                        timeScale: {
-                            timeVisible: true,
-                            secondsVisible: false,
-                        },
+                        layout: { background: { color: '#FFFFFF' }, textColor: '#000000' },
+                        grid: { vertLines: { color: '#e0e0e0' }, horzLines: { color: '#e0e0e0' }},
+                        crosshair: { mode: CrosshairMode.Normal },
+                        timeScale: { timeVisible: true, secondsVisible: false },
                     });
 
                     const candleSeries = chart.addCandlestickSeries();
-
-                    // Fetch price data
                     const url = `http://127.0.0.1:5000/api/get-price-data?ticker=${encodeURIComponent(backtestParams.ticker)}&start_date=${encodeURIComponent(backtestParams.start_date)}&end_date=${encodeURIComponent(backtestParams.end_date)}`;
                     console.log('Fetching price data from:', url);
 
                     const response = await fetch(url);
-
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.error || 'Error fetching price data');
@@ -153,7 +151,6 @@ export default function BacktestingApp() {
                         throw new Error('No price data available for the selected ticker and date range.');
                     }
 
-                    // Format price data
                     const priceData = data.map((item: PriceDataItem) => ({
                         time: item.date as Time,
                         open: item.open,
@@ -164,43 +161,28 @@ export default function BacktestingApp() {
 
                     candleSeries.setData(priceData);
 
-                    // Prepare markers if trade history is available
                     if (backtestResults.trade_history && backtestResults.trade_history.length > 0) {
-                        const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap(
-                            (trade: TradeHistoryEntry) => {
-                                const entryTime = trade.EntryTime.split('T')[0];
-                                const exitTime = trade.ExitTime ? trade.ExitTime.split('T')[0] : null;
+                        const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap((trade: TradeHistoryEntry) => {
+                            const entryTime = trade.EntryTime.split('T')[0];
+                            const exitTime = trade.ExitTime ? trade.ExitTime.split('T')[0] : null;
 
-                                const markersList: SeriesMarker<Time>[] = [
-                                    {
-                                        time: entryTime as Time,
-                                        position: 'belowBar',
-                                        color: 'green',
-                                        shape: 'arrowUp',
-                                        text: `Buy @ ${trade.EntryPrice.toFixed(2)}`,
-                                    },
-                                ];
+                            const markersList: SeriesMarker<Time>[] = [
+                                { time: entryTime as Time, position: 'belowBar', color: 'green', shape: 'arrowUp', text: `Buy @ ${trade.EntryPrice.toFixed(2)}` }
+                            ];
 
-                                if (exitTime) {
-                                    markersList.push({
-                                        time: exitTime as Time,
-                                        position: 'aboveBar',
-                                        color: 'red',
-                                        shape: 'arrowDown',
-                                        text: `Sell @ ${trade.ExitPrice.toFixed(2)}`,
-                                    });
-                                }
-
-                                return markersList;
+                            if (exitTime) {
+                                markersList.push({ time: exitTime as Time, position: 'aboveBar', color: 'red', shape: 'arrowDown', text: `Sell @ ${trade.ExitPrice.toFixed(2)}` });
                             }
-                        );
+
+                            return markersList;
+                        });
 
                         candleSeries.setMarkers(markers);
                     }
 
                     chart.timeScale().fitContent();
                 } catch (error) {
-                    console.error('Error fetching price data:', error);
+                    console.error('Error fetching or rendering price data:', error);
                     setFetchError((error as Error).message || 'Error fetching price data');
                 }
             } else {
@@ -210,7 +192,6 @@ export default function BacktestingApp() {
 
         fetchDataAndRenderChart();
 
-        // Cleanup on unmount
         return () => {
             if (chart) {
                 chart.remove();

@@ -1,0 +1,6 @@
+Flask
+ta
+yfinance
+backtesting
+pandas
+numpy

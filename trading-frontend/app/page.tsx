@@ -1,5 +1,6 @@
 'use client'
 
+
 import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,13 +8,19 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlusCircle, Trash2 } from 'lucide-react'
+import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+ChartJS.register(ArcElement, Tooltip);
+
 
 import { createChart, CrosshairMode, SeriesMarker, SeriesMarkerPosition, SeriesMarkerShape, Time } from 'lightweight-charts'
+
 
 const getTodayDate = () => {
     const today = new Date();
     return today.toLocaleDateString('en-CA');
 }
+
 
 type Condition = {
     indicator: string
@@ -22,6 +29,7 @@ type Condition = {
     reference?: string
     value?: number
 }
+
 
 type BacktestParams = {
     ticker: string
@@ -33,7 +41,10 @@ type BacktestParams = {
     }
     initial_cash: number
     commission: number
+    fixed_cash_position_size: number
 }
+
+
 
 export default function BacktestingApp() {
     const [backtestParams, setBacktestParams] = useState<BacktestParams>({
@@ -51,8 +62,10 @@ export default function BacktestingApp() {
             ]
         },
         initial_cash: 10000,
-        commission: 0.002
+        commission: 0.002,
+        fixed_cash_position_size: 1
     })
+
 
     // Hardcoded backtest results based on your payload
     const [backtestResults] = useState({
@@ -90,7 +103,9 @@ export default function BacktestingApp() {
         win_rate: 100.0
     })
 
+
     const chartContainerRef = useRef(null)
+
 
     useEffect(() => {
         // Initialize the chart with hardcoded data
@@ -119,9 +134,12 @@ export default function BacktestingApp() {
                 },
             })
 
+
             const candleSeries = chart.addCandlestickSeries()
 
+
             // Hardcoded price data (simplified example)
+
 
             const priceData = [
                 { time: '2019-06-03', open: 43.87, high: 44.00, low: 43.50, close: 43.98 },
@@ -146,8 +164,10 @@ export default function BacktestingApp() {
                 { time: '2020-03-06', open: 77.20, high: 79.00, low: 76.50, close: 78.00 },
                 // ... add more data points as needed
             ]
-            
+
+
             candleSeries.setData(priceData)
+
 
             // Prepare markers from trade history
             const markers: SeriesMarker<Time>[] = backtestResults.trade_history.flatMap(trade => {
@@ -168,7 +188,9 @@ export default function BacktestingApp() {
                 return [entryMarker, exitMarker]
             })
 
+
             candleSeries.setMarkers(markers)
+
 
             // Cleanup on unmount
             return () => {
@@ -176,6 +198,7 @@ export default function BacktestingApp() {
             }
         }
     }, [backtestResults.trade_history])
+
 
     const updateCondition = (index: number, field: keyof Condition, value: string | number, isExit: boolean) => {
         const paramType = isExit ? 'exits' : 'conditions'
@@ -190,6 +213,7 @@ export default function BacktestingApp() {
         }))
     }
 
+
     const addCondition = (isExit: boolean) => {
         const paramType = isExit ? 'exits' : 'conditions'
         setBacktestParams(prev => ({
@@ -200,6 +224,7 @@ export default function BacktestingApp() {
             }
         }))
     }
+
 
     const removeCondition = (index: number, isExit: boolean) => {
         const paramType = isExit ? 'exits' : 'conditions'
@@ -212,11 +237,13 @@ export default function BacktestingApp() {
         }))
     }
 
+
     const handleBacktest = () => {
         // Implement the backtest logic here
         // For now, we'll just log the parameters
         console.log('Running backtest with params:', backtestParams)
     }
+
 
     const renderConditionInputs = (condition: Condition, index: number, isExit: boolean) => (
         <div key={index} className="space-y-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -273,15 +300,49 @@ export default function BacktestingApp() {
         </div>
     )
 
+
     // Calculate total trades
     const totalTrades = backtestResults.trade_history.length
 
+
+    const [chartData] = useState({
+        labels: ['Win', 'Loss'],
+        datasets: [
+            {
+                data: [70, 30], // Replace with your actual data
+                backgroundColor: ['#26a69a', '#ef5350'],
+                hoverBackgroundColor: ['#26a69a', '#ef5350'],
+            },
+        ],
+    });
+
+
+    const centerTextPlugin = {
+        id: 'centerText',
+        afterDraw(chart: { width: any; height: any; ctx: any }) {
+            const { width, height, ctx } = chart;
+            ctx.restore();
+            const fontSize = (height / 114).toFixed(2);
+            ctx.font = `${fontSize}em sans-serif`;
+            ctx.textBaseline = 'middle';
+
+
+            const text = '70% '; // Text you want to display inside the donut
+            const textX = Math.round((width - ctx.measureText(text).width) / 2);
+            const textY = height / 2;
+
+
+            ctx.fillText(text, textX, textY);
+            ctx.save();
+        },
+    };
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
             <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">Backtesting Trading App</h1>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                <div className="lg:col-span-2 space-y-2">
+                {/* Left Column */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Backtest Parameters */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Backtest Parameters</CardTitle>
@@ -333,11 +394,23 @@ export default function BacktestingApp() {
                                         onChange={(e) => setBacktestParams(prev => ({ ...prev, commission: parseFloat(e.target.value) || 0 }))}
                                     />
                                 </div>
+                                <div className="flex flex-col space-y-1">
+                                    <Label htmlFor="fixed_cash_position_size">Fixed Cash Position Size</Label>
+                                    <Input
+                                        id="fixed_cash_position_size"
+                                        type="number"
+                                        step="0.001"
+                                        value={backtestParams.fixed_cash_position_size}
+                                        onChange={(e) => setBacktestParams(prev => ({ ...prev, fixed_cash_position_size: parseFloat(e.target.value) || 0 }))}
+                                    />
+                                </div>
                             </form>
                         </CardContent>
                     </Card>
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card>
+                    {/* Grid for Chart and Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Trading Chart */}
+                        <Card className="col-span-2">
                             <CardHeader>
                                 <CardTitle>Trading Chart</CardTitle>
                             </CardHeader>
@@ -345,12 +418,13 @@ export default function BacktestingApp() {
                                 <div ref={chartContainerRef} id="tradingview_chart" className="w-full h-[400px]"></div>
                             </CardContent>
                         </Card>
-                        <Card>
+                        {/* Backtesting Statistics */}
+                        <Card className="col-span-2 space-y-6">
                             <CardHeader>
                                 <CardTitle>Backtesting Statistics</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-4 md:grid-cols-4 gap-4">
                                     <div className="text-center">
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
                                         <p className="text-2xl font-bold">{totalTrades}</p>
@@ -370,16 +444,48 @@ export default function BacktestingApp() {
                                 </div>
                             </CardContent>
                         </Card>
+                        {/* Win Rate */}
+                        <Card className="col-span-1">
+                            <CardHeader>
+                                <CardTitle>Win Rate</CardTitle>
+                            </CardHeader>
+                            <CardContent className="w-[80%] h-[80%] mx-auto"> {/* Adjust width and height */}
+                                <Doughnut
+                                    data={chartData}
+                                    options={{
+                                        responsive: true,
+                                        cutout: '60%', // Creates the donut effect
+                                        plugins: {
+                                            tooltip: {
+                                                enabled: true,
+                                            },
+                                        },
+                                        maintainAspectRatio: false, // Disable aspect ratio to use custom size
+                                    }}
+                                    plugins={[centerTextPlugin]}
+                                />
+                            </CardContent>
+                        </Card>
+
+
+                        <Card className="col-span-1">
+                            <CardHeader>
+                                <CardTitle></CardTitle>
+                            </CardHeader>
+                            <CardContent>
+
+
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
-
-                <div className="lg:col-span-1">
+                {/* Right Column */}
+                <div className="grid grid-cols-1">
                     <Card>
                         <CardHeader>
                             <CardTitle>Conditions</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            
                             <form className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Entry Conditions</Label>
@@ -408,3 +514,7 @@ export default function BacktestingApp() {
         </div>
     )
 }
+
+
+
+

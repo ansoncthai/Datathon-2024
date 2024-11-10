@@ -40,10 +40,10 @@ type BacktestParams = {
     params: {
         conditions: Condition[]
         exits: Condition[]
+        fixed_cash_per_trade: number
     }
     initial_cash: number
     commission: number
-    fixed_cash_per_trade: number // Add this line
 }
 
 type PriceDataItem = {
@@ -80,11 +80,11 @@ export default function BacktestingApp() {
             exits: [
                 { indicator: "SMA", period: 20, comparison: "<", reference: "SMA_50" },
                 { indicator: "RSI", period: 14, comparison: ">", value: 70 }
-            ]
+            ],
+            fixed_cash_per_trade: 0
         },
         initial_cash: 10000,
-        commission: 0.002,
-        fixed_cash_per_trade: 0
+        commission: 0.002
     })
 
     const [backtestResults, setBacktestResults] = useState<{
@@ -549,7 +549,7 @@ export default function BacktestingApp() {
                                         <Input
                                             id="commission"
                                             type="number"
-                                            step="0.001"
+                                            step="500"
                                             value={backtestParams.commission}
                                             onChange={(e) =>
                                                 setBacktestParams((prev) => ({
@@ -565,12 +565,15 @@ export default function BacktestingApp() {
                                         <Input
                                             id="fixed_cash_per_trade"
                                             type="number"
-                                            value={backtestParams.fixed_cash_per_trade}
+                                            value={backtestParams.params.fixed_cash_per_trade}
                                             onChange={(e) =>
-                                                setBacktestParams((prev) => ({
-                                                    ...prev,
-                                                    fixed_cash_per_trade: parseFloat(e.target.value) || 0,
-                                                }))
+                                              setBacktestParams((prev) => ({
+                                                  ...prev,
+                                                  params: {
+                                                      ...prev.params,
+                                                      fixed_cash_per_trade: parseFloat(e.target.value) || 0,
+                                                  },
+                                              }))
                                             }
                                             placeholder="e.g., Leave blank to use all cash or set a fixed amount"
                                         />

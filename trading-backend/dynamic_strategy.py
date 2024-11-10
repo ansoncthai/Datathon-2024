@@ -2,7 +2,7 @@ from backtesting import Strategy
 
 class DynamicStrategy(Strategy):
     # params = {}
-    params = {"fixed_cash_per_trade": None}
+    params = {"fixed_cash_per_trade": 0}
 
     def init(self):
         pass
